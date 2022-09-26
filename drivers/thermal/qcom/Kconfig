@@ -264,3 +264,13 @@ config THERMAL_TSENS_LEGACY
 	  thermal userspace client when a threshold is reached. Warm/Cool
 	  temperature thresholds can be set independently for each sensor.
 
+config QTI_THERMAL_MINIDUMP
+	tristate "QTI Thermal minidump driver"
+	depends on THERMAL && QCOM_MINIDUMP
+	help
+	   This will enable the Thermal minidump function, the sensor
+	   temperature data of the adc driver and the tsensor driver will
+	   be saved to the minidump in real time. When the system crashes,
+	   the saved temperature data will help analyze the reason for the
+	   system crash.
+
