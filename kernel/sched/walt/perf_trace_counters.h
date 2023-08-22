@@ -157,7 +157,7 @@ TRACE_EVENT(sched_switch_with_ctrs,
 			__entry->amu2 = delta_amu_cnts[2];
 		),
 
-		TP_printk("prev_comm=%s prev_pid=%d prev_state=%s%s ==> next_comm=%s next_pid=%d CCNTR=%u CTR0=%u CTR1=%u CTR2=%u CTR3=%u CTR4=%u CTR5=%u, CYC: %lu, INST: %lu, STALL: %lu",
+		TP_printk("prev_comm=%s prev_pid=%d prev_state=%s%s ==> next_comm=%s next_pid=%d CCNTR=%lu CTR0=%lu CTR1=%lu CTR2=%lu CTR3=%lu CTR4=%lu CTR5=%lu, CYC: %lu, INST: %lu, STALL: %lu",
 			__entry->prev_comm, __entry->prev_pid,
 
 			(__entry->prev_state & (TASK_REPORT_MAX - 1)) ?

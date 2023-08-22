@@ -451,7 +451,7 @@ static ssize_t show_nrrun_cpu_mask(const struct cluster_data *state, char *buf)
 {
 	int ret = 0;
 
-	ret = scnprintf(buf, PAGE_SIZE, "0x%x\n", (*(cpumask_bits(&state->nrrun_cpu_mask))));
+	ret = scnprintf(buf, PAGE_SIZE, "0x%lx\n", (*(cpumask_bits(&state->nrrun_cpu_mask))));
 
 	return ret;
 }
@@ -481,7 +481,7 @@ static ssize_t show_nrrun_cpu_misfit_mask(const struct cluster_data *state, char
 {
 	int ret = 0;
 
-	ret = scnprintf(buf, PAGE_SIZE, "0x%x\n", (*(cpumask_bits(&state->nrrun_cpu_misfit_mask))));
+	ret = scnprintf(buf, PAGE_SIZE, "0x%lx\n", (*(cpumask_bits(&state->nrrun_cpu_misfit_mask))));
 
 	return ret;
 }
@@ -511,7 +511,7 @@ static ssize_t show_assist_cpu_mask(const struct cluster_data *state, char *buf)
 {
 	int ret = 0;
 
-	ret = scnprintf(buf, PAGE_SIZE, "0x%x\n", (*(cpumask_bits(&state->assist_cpu_mask))));
+	ret = scnprintf(buf, PAGE_SIZE, "0x%lx\n", (*(cpumask_bits(&state->assist_cpu_mask))));
 
 	return ret;
 }
@@ -541,7 +541,7 @@ static ssize_t show_assist_cpu_misfit_mask(const struct cluster_data *state, cha
 {
 	int ret = 0;
 
-	ret = scnprintf(buf, PAGE_SIZE, "0x%x\n",
+	ret = scnprintf(buf, PAGE_SIZE, "0x%lx\n",
 			(*(cpumask_bits(&state->assist_cpu_misfit_mask))));
 
 	return ret;

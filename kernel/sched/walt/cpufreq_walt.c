@@ -191,7 +191,7 @@ static void waltgov_calc_avg_cap(struct waltgov_policy *wg_policy, u64 curr_ws,
 		}
 		printk_deferred("============ WALT CPUFREQ DUMP END  ==============\n");
 		WALT_BUG(WALT_BUG_WALT, NULL,
-				"policy->related_cpus=0x%x curr_ws=%llu < last_ws=%llu",
+				"policy->related_cpus=0x%lx curr_ws=%llu < last_ws=%llu",
 				cpumask_bits(wg_policy->policy->related_cpus)[0], curr_ws,
 				last_ws);
 	}
@@ -862,7 +862,7 @@ __ATTR(_name, 0644, show_##_name, store_##_name)			\
 static ssize_t show_##name(struct gov_attr_set *attr_set, char *buf)	\
 {									\
 	struct waltgov_tunables *tunables = to_waltgov_tunables(attr_set);	\
-	return scnprintf(buf, PAGE_SIZE, "%lu\n", tunables->name);	\
+	return scnprintf(buf, PAGE_SIZE, "%lu\n", (unsigned long)tunables->name);	\
 }									\
 
 #define store_attr(name)						\

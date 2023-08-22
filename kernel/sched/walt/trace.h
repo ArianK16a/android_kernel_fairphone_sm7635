@@ -247,7 +247,7 @@ TRACE_EVENT(sched_update_task_ravg,
 		__entry->walt_irq_work_lastq_ws	= walt_irq_work_lastq_ws;
 	),
 
-	TP_printk("wc %llu ws %llu delta %llu event %s cpu %d cur_freq %u cur_pid %d task %d (%s) ms %llu delta %llu demand %u coloc_demand: %u sum %u irqtime %llu pred_demand_scaled %u rq_cs %llu rq_ps %llu cur_window %u (%s) prev_window %u (%s) nt_cs %llu nt_ps %llu active_time %u grp_cs %lld grp_ps %lld, grp_nt_cs %llu, grp_nt_ps: %llu curr_top %u prev_top %u global_ws %llu",
+	TP_printk("wc %llu ws %llu delta %llu event %s cpu %d cur_freq %u cur_pid %d task %d (%s) ms %llu delta %llu demand %u coloc_demand: %u sum %u irqtime %llu pred_demand_scaled %u rq_cs %llu rq_ps %llu cur_window %u (%s) prev_window %u (%s) nt_cs %llu nt_ps %llu active_time %llu grp_cs %lld grp_ps %lld, grp_nt_cs %llu, grp_nt_ps: %llu curr_top %u prev_top %u global_ws %llu",
 		__entry->wallclock, __entry->win_start, __entry->delta,
 		task_event_names[__entry->evt], __entry->cpu,
 		__entry->cur_freq, __entry->cur_pid,
@@ -360,7 +360,7 @@ TRACE_EVENT(sched_set_preferred_cluster,
 		__entry->sched_group_downmigrate = sched_group_downmigrate;
 	),
 
-	TP_printk("group_id %d total_demand %llu skip_min %d prev_skip_min %d start_ktime_ts %llu last_update %llu min_coloc_ns %u downmigrate_ts %llu group_upmigrate %llu group_downmigrate %llu",
+	TP_printk("group_id %d total_demand %llu skip_min %d prev_skip_min %d start_ktime_ts %llu last_update %llu min_coloc_ns %u downmigrate_ts %llu group_upmigrate %u group_downmigrate %u",
 			__entry->id, __entry->total_demand,
 			__entry->skip_min, __entry->prev_skip_min,
 			__entry->start_ktime_ts, __entry->last_update,
@@ -722,7 +722,7 @@ TRACE_EVENT(sched_ravg_window_change,
 		__entry->change_time		= change_time;
 	),
 
-	TP_printk("from=%u to=%u at=%lu",
+	TP_printk("from=%u to=%u at=%llu",
 		__entry->sched_ravg_window, __entry->new_sched_ravg_window,
 		__entry->change_time)
 );
@@ -796,7 +796,7 @@ TRACE_EVENT(waltgov_next_freq,
 		    __entry->driving_cpu	= driving_cpu;
 		    __entry->reason		= reason;
 	    ),
-	    TP_printk("cpu=%u util=%lu max=%lu raw_freq=%lu freq=%u policy_min_freq=%u policy_max_freq=%u cached_raw_freq=%u need_update=%d thermal_isolated=%d rt_util=%u driv_cpu=%u reason=0x%x",
+	    TP_printk("cpu=%u util=%lu max=%lu raw_freq=%u freq=%u policy_min_freq=%u policy_max_freq=%u cached_raw_freq=%u need_update=%d thermal_isolated=%d rt_util=%u driv_cpu=%u reason=0x%x",
 		      __entry->cpu,
 		      __entry->util,
 		      __entry->max,
@@ -1010,7 +1010,7 @@ TRACE_EVENT(sched_cpu_util,
 		__entry->thermal_pressure	= arch_scale_thermal_pressure(cpu);
 	),
 
-	TP_printk("cpu=%d nr_running=%d cpu_util=%ld cpu_util_cum=%ld capacity_curr=%lu capacity=%lu capacity_orig=%lu idle_exit_latency=%u irqload=%llu online=%u, inactive=%u, halted=%u, reserved=%u, high_irq_load=%u nr_rtg_hp=%u prs_gprs=%llu lowest_mask=0x%x thermal_pressure=%llu",
+	TP_printk("cpu=%d nr_running=%d cpu_util=%ld cpu_util_cum=%ld capacity_curr=%lu capacity=%lu capacity_orig=%lu idle_exit_latency=%u irqload=%llu online=%u, inactive=%u, halted=%u, reserved=%u, high_irq_load=%u nr_rtg_hp=%u prs_gprs=%llu lowest_mask=0x%x thermal_pressure=%lu",
 		__entry->cpu, __entry->nr_running, __entry->cpu_util,
 		__entry->cpu_util_cum, __entry->capacity_curr,
 		__entry->capacity, __entry->capacity_orig,
@@ -1080,7 +1080,7 @@ TRACE_EVENT(sched_compute_energy,
 		__entry->c2	= o->cost[2];
 	),
 
-	TP_printk("pid=%d comm=%s util=%lu prev_cpu=%d prev_energy=%lu eval_cpu=%d eval_energy=%lu best_energy_cpu=%d best_energy=%lu, fcpu s m c = %u %u %u %u, %u %u %u %u, %u %u %u %u",
+	TP_printk("pid=%d comm=%s util=%lu prev_cpu=%d prev_energy=%lu eval_cpu=%d eval_energy=%lu best_energy_cpu=%d best_energy=%lu, fcpu s m c = %u %lu %lu %lu, %u %lu %lu %lu, %u %lu %lu %lu",
 		__entry->pid, __entry->comm, __entry->util, __entry->prev_cpu,
 		__entry->prev_energy, __entry->eval_cpu, __entry->eval_energy,
 		__entry->best_energy_cpu, __entry->best_energy,
@@ -1118,7 +1118,7 @@ TRACE_EVENT(sched_select_task_rt,
 			__entry->lowest_mask	= cpumask_bits(lowest_mask)[0];
 	),
 
-	TP_printk("pid=%d comm=%s fastpath=%u best_cpu=%d reduce_mask=0x%x lowest_mask=0x%x",
+	TP_printk("pid=%d comm=%s fastpath=%u best_cpu=%d reduce_mask=0x%lx lowest_mask=0x%lx",
 		__entry->pid, __entry->comm, __entry->fastpath, __entry->new_cpu,
 		__entry->reduce_mask, __entry->lowest_mask)
 );
@@ -1152,7 +1152,7 @@ TRACE_EVENT(sched_rt_find_lowest_rq,
 			__entry->lowest_mask	= cpumask_bits(lowest_mask)[0];
 	),
 
-	TP_printk("pid=%d comm=%s fastpath=%u best_cpu=%d reduce_mask=0x%x lowest_mask=0x%x",
+	TP_printk("pid=%d comm=%s fastpath=%u best_cpu=%d reduce_mask=0x%lx lowest_mask=0x%lx",
 		__entry->pid, __entry->comm, __entry->fastpath, __entry->best_cpu,
 		__entry->reduce_mask, __entry->lowest_mask)
 );
@@ -1551,8 +1551,9 @@ TRACE_EVENT(sched_task_handler,
 	),
 
 	TP_printk("comm=%s pid=%d param=%d val=%d callers=%ps <- %ps <- %ps <- %ps <- %ps <- %ps",
-		__entry->comm, __entry->pid, __entry->param, __entry->val, __entry->c0,
-		__entry->c1, __entry->c2, __entry->c3, __entry->c4, __entry->c5)
+		__entry->comm, __entry->pid, __entry->param, __entry->val, (void *)__entry->c0,
+		(void *)__entry->c1, (void *)__entry->c2, (void *)__entry->c3,
+		(void *)__entry->c4, (void *)__entry->c5)
 );
 
 TRACE_EVENT(update_cpu_capacity,
