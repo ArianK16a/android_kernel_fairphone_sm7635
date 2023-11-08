@@ -15,6 +15,7 @@
 #include <linux/cpumask.h>
 #include <linux/arch_topology.h>
 #include <linux/cpu.h>
+#include <linux/sysctl.h>
 
 #include <trace/hooks/sched.h>
 #include <trace/hooks/cpufreq.h>
@@ -5508,7 +5509,7 @@ static void walt_remove_cpufreq_efficiencies_available(void)
 
 static void walt_init(struct work_struct *work)
 {
-	struct ctl_table_header *hdr;
+	struct ctl_table_header *hdr, *hdr2;
 	static atomic_t already_inited = ATOMIC_INIT(0);
 	struct root_domain *rd = cpu_rq(cpumask_first(cpu_active_mask))->rd;
 	int i;
@@ -5560,8 +5561,11 @@ static void walt_init(struct work_struct *work)
 			 "root domain's perf-domain values not initialized rd->pd=%p.",
 			 rd->pd);
 
-	hdr = register_sysctl_table(walt_base_table);
+	hdr = register_sysctl("walt", walt_table);
+	hdr2 = register_sysctl("walt/input_boost", input_boost_sysctls);
+
 	kmemleak_not_leak(hdr);
+	kmemleak_not_leak(hdr2);
 
 	input_boost_init();
 	core_ctl_init();
