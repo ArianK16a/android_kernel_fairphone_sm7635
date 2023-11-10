@@ -2888,7 +2888,8 @@ static void walt_update_cluster_topology(void)
 					     policy->related_cpus);
 			}
 			cpuinfo_max_freq_cached = (cpuinfo_max_freq_cached >
-			policy->cpuinfo.max_freq) ?: policy->cpuinfo.max_freq;
+			policy->cpuinfo.max_freq) ? cpuinfo_max_freq_cached
+				: policy->cpuinfo.max_freq;
 		}
 	}
 
