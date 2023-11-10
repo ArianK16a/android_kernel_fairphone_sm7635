@@ -2062,7 +2062,8 @@ static void update_history(struct rq *rq, struct task_struct *p,
 	for (; samples > 0; samples--) {
 		hist[wts->cidx] = runtime;
 		hist_util[wts->cidx] = runtime_scaled;
-		wts->cidx = ++(wts->cidx) % RAVG_HIST_SIZE;
+		wts->cidx++;
+		wts->cidx = wts->cidx % RAVG_HIST_SIZE;
 	}
 
 	for (i = 0; i < RAVG_HIST_SIZE; i++) {
