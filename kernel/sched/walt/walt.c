@@ -5448,9 +5448,9 @@ static int walt_init_stop_handler(void *data)
 		level++;
 	}
 
-	do_each_thread(g, p) {
+	for_each_process_thread(g, p) {
 		init_new_task_load(p);
-	} while_each_thread(g, p);
+	}
 
 	for_each_possible_cpu(cpu) {
 		struct rq *rq = cpu_rq(cpu);
