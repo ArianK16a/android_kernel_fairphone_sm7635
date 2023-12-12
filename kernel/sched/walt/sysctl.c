@@ -4,6 +4,7 @@
  * Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
+#include <linux/kmemleak.h>
 #include <trace/hooks/sched.h>
 
 #include "walt.h"
@@ -907,7 +908,7 @@ static int sched_sibling_cluster_handler(struct ctl_table *table, int write,
 	return ret;
 }
 
-struct ctl_table input_boost_sysctls[] = {
+static struct ctl_table input_boost_sysctls[] = {
 	{
 		.procname	= "input_boost_ms",
 		.data		= &sysctl_input_boost_ms,
@@ -938,7 +939,7 @@ struct ctl_table input_boost_sysctls[] = {
 	{ }
 };
 
-struct ctl_table walt_table[] = {
+static struct ctl_table walt_table[] = {
 	{
 		.procname	= "sched_user_hint",
 		.data		= &sysctl_sched_user_hint,
@@ -1588,4 +1589,15 @@ void walt_tunables(void)
 			relation_data[i][j].target_cluster_cpu = -1;
 		}
 	}
+}
+
+void walt_register_sysctl(void)
+{
+	struct ctl_table_header *hdr, *hdr2;
+
+	hdr = register_sysctl("walt", walt_table);
+	hdr2 = register_sysctl("walt/input_boost", input_boost_sysctls);
+
+	kmemleak_not_leak(hdr);
+	kmemleak_not_leak(hdr2);
 }
