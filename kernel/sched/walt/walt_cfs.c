@@ -1378,7 +1378,7 @@ out:
 static void walt_cfs_check_preempt_wakeup(void *unused, struct rq *rq, struct task_struct *p,
 					  bool *preempt, bool *nopreempt, int wake_flags,
 					  struct sched_entity *se, struct sched_entity *pse,
-					  int next_buddy_marked, unsigned int granularity)
+					  int next_buddy_marked)
 {
 	struct walt_rq *wrq = &per_cpu(walt_rq, cpu_of(rq));
 	struct walt_task_struct *wts_p = (struct walt_task_struct *) p->android_vendor_data1;
