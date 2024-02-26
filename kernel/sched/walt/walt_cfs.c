@@ -1094,13 +1094,24 @@ walt_select_task_rq_fair(void *unused, struct task_struct *p, int prev_cpu,
 	*target_cpu = walt_find_energy_efficient_cpu(p, prev_cpu, sync, sibling_count_hint);
 }
 
-static void walt_binder_low_latency_set(void *unused, struct task_struct *task,
-					bool sync, struct binder_proc *proc)
+static void binder_set_priority_hook(void *data,
+				struct binder_transaction *bndrtrans, struct task_struct *task)
 {
 	struct walt_task_struct *wts = (struct walt_task_struct *) task->android_vendor_data1;
+	struct walt_task_struct *current_wts =
+			(struct walt_task_struct *) current->android_vendor_data1;
 
 	if (unlikely(walt_disabled))
 		return;
+
+	if (bndrtrans && bndrtrans->need_reply && current_wts->boost == TASK_BOOST_STRICT_MAX) {
+		bndrtrans->android_vendor_data1  = wts->boost;
+		wts->boost = TASK_BOOST_STRICT_MAX;
+	}
+
+	if (current == task)
+		return;
+
 	if (task && ((task_in_related_thread_group(current) &&
 			task->group_leader->prio < MAX_RT_PRIO) ||
 			(current->group_leader->prio < MAX_RT_PRIO &&
@@ -1118,22 +1129,6 @@ static void walt_binder_low_latency_set(void *unused, struct task_struct *task,
 		 */
 		wts->low_latency &= ~WALT_LOW_LATENCY_BINDER;
 
-}
-
-static void binder_set_priority_hook(void *data,
-				struct binder_transaction *bndrtrans, struct task_struct *task)
-{
-	struct walt_task_struct *wts = (struct walt_task_struct *) task->android_vendor_data1;
-	struct walt_task_struct *current_wts =
-			(struct walt_task_struct *) current->android_vendor_data1;
-
-	if (unlikely(walt_disabled))
-		return;
-
-	if (bndrtrans && bndrtrans->need_reply && current_wts->boost == TASK_BOOST_STRICT_MAX) {
-		bndrtrans->android_vendor_data1  = wts->boost;
-		wts->boost = TASK_BOOST_STRICT_MAX;
-	}
 }
 
 static void binder_restore_priority_hook(void *data,
@@ -1514,8 +1509,6 @@ static void walt_cfs_replace_next_task_fair(void *unused, struct rq *rq, struct 
 void walt_cfs_init(void)
 {
 	register_trace_android_rvh_select_task_rq_fair(walt_select_task_rq_fair, NULL);
-
-	register_trace_android_vh_binder_wakeup_ilocked(walt_binder_low_latency_set, NULL);
 
 	register_trace_android_vh_binder_set_priority(binder_set_priority_hook, NULL);
 	register_trace_android_vh_binder_restore_priority(binder_restore_priority_hook, NULL);
