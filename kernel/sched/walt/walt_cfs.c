@@ -20,18 +20,21 @@ static void create_util_to_cost_pd(struct em_perf_domain *pd)
 	unsigned long scale_cpu;
 	struct walt_rq *wrq = &per_cpu(walt_rq, cpu);
 	struct walt_sched_cluster *cluster = wrq->cluster;
+	struct em_perf_table *em_table = rcu_dereference(pd->em_table);
+	struct em_perf_state *ps;
 
-	fmax = (u64)pd->table[pd->nr_perf_states - 1].frequency;
+	ps = &em_table->state[pd->nr_perf_states - 1];
+	fmax = (u64)ps->frequency;
 	scale_cpu = arch_scale_cpu_capacity(cpu);
 
 	for (util = 0; util < 1024; util++) {
 		int j;
 
 		int f = (fmax * util) / scale_cpu;
-		struct em_perf_state *ps = &pd->table[0];
+		ps = &em_table->state[0];
 
 		for (j = 0; j < pd->nr_perf_states; j++) {
-			ps = &pd->table[j];
+			ps = &em_table->state[j];
 			if (ps->frequency >= f)
 				break;
 		}
