@@ -260,6 +260,12 @@ config ARCH_PINEAPPLE
 	  chipset. If you do not wish to build a kernel that runs on this
 	  chipset or if you are unsure, say 'N' here.
 
+config ARCH_FPSPRING
+	bool "Enable support for T2Mobile Technologies, Inc. FP Spring"
+	depends on ARCH_PINEAPPLE
+	help
+	  This enables support for T2Mobile Technologies, Inc.
+
 config ARCH_NIOBE
         bool "Enable support for Qualcomm Technologies, Inc. Niobe"
         depends on ARCH_QCOM
