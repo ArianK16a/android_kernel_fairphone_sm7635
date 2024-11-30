@@ -8,6 +8,7 @@ la_targets = [
     "neo-la",
     "niobe",
     "pineapple",
+    "fps",
     "pitti",
     "sdmsteppeauto",
     "seraph",
