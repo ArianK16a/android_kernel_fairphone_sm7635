@@ -333,5 +333,5 @@ def define_fps():
                 board_kernel_cmdline_extras = board_kernel_cmdline_extras,
                 board_bootconfig_extras = board_bootconfig_extras,
             ),
-            dpm_overlay = True,
+            # dpm_overlay = True,
         )
