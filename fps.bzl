@@ -289,6 +289,7 @@ def define_fps():
         "net/wireless/cfg80211.ko",
         "sound/soc/codecs/snd-soc-hdmi-codec.ko",
         "sound/usb/snd-usb-audio-qmi.ko",
+        "drivers/input/misc/vl53L1/stmvl53l1.ko",
     ]
 
     _fps_consolidate_in_tree_modules = _fps_in_tree_modules + [
