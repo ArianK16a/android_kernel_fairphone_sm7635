@@ -304,6 +304,7 @@ def define_fps():
         "kernel/torture.ko",
         "lib/atomic64_test.ko",
         "lib/test_user_copy.ko",
+	"drivers/misc/haptic_hv/haptic.ko",
     ]
 
     kernel_vendor_cmdline_extras = [
