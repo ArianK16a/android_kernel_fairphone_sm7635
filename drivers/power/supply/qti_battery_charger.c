@@ -120,6 +120,7 @@ enum usb_property_id {
 	USB_TYPEC_COMPLIANT,
 	USB_SCOPE,
 	USB_CONNECTOR_TYPE,
+	USB_SUSPEND_INPUT_CURRENT,
 	F_ACTIVE,
 	USB_PROP_MAX,
 };
@@ -1897,6 +1898,41 @@ static ssize_t charge_control_en_show(const struct class *c,
 }
 static CLASS_ATTR_RW(charge_control_en);
 
+static ssize_t suspend_input_current_store(struct class *c, struct class_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_USB];
+	int val, rc;
+
+	if (kstrtoint(buf, 0, &val))
+		return -EINVAL;
+
+	pr_debug("suspend input current %d\n", val);
+
+	rc = write_property_id(bcdev, pst, USB_SUSPEND_INPUT_CURRENT, val);
+	if (rc < 0)
+		return rc;
+	return count;
+}
+
+static ssize_t suspend_input_current_show(struct class *c, struct class_attribute *attr,
+				char *buf)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_USB];
+	int rc;
+
+	rc = read_property_id(bcdev, pst, USB_SUSPEND_INPUT_CURRENT);
+	if (rc < 0)
+		return rc;
+
+		return scnprintf(buf, PAGE_SIZE, "%d\n", pst->prop[USB_SUSPEND_INPUT_CURRENT]);
+}
+static CLASS_ATTR_RW(suspend_input_current);
+
 static ssize_t usb_typec_compliant_show(const struct class *c,
 				const struct class_attribute *attr, char *buf)
 {
@@ -2261,6 +2297,7 @@ static struct attribute *battery_class_attrs[] = {
 	&class_attr_usb_typec_compliant.attr,
 	&class_attr_charge_control_en.attr,
 	&class_attr_battery_parallel_cell_count.attr,
+	&class_attr_suspend_input_current.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(battery_class);
