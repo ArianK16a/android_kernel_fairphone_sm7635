@@ -673,5 +673,12 @@ int smtvl53l1_stop(int fd){
 #define VL53L1_IOCTL_AUTONOMOUS_CONFIG\
 	_IOWR('p', 0x14, struct stmvl53l1_autonomous_config_t)
 
+
+//add for FPS,apply calidata
+#define VL53L1_IOCTL_APPLY_CALIBRATION_DATA\
+	_IOWR('p', 0x15, struct stmvl53l1_ioctl_calibration_data_t)
+
+
+
 /** @} */ /* ioctl group */
 #endif /* STMVL53L1_IF_H */
