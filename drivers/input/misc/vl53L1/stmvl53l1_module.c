@@ -290,7 +290,9 @@ static struct stmvl53l1_module_fn_t stmvl53l1_module_func_tbl = {
 
 static void stmvl53l1_input_push_data(struct stmvl53l1_data *data);
 
-static int FP4SetCalibrationData(struct stmvl53l1_data *pData);
+//static int FPSSetCalibrationData(struct stmvl53l1_data *pData);
+static int fps_set_calibration_data(struct stmvl53l1_data *data);
+
 
 /*
  * Mutex to handle device id add/removal
@@ -527,6 +529,7 @@ static void kill_mz_data(VL53L1_MultiRangingData_t *pdata)
 	pdata->RoiStatus = VL53L1_ROISTATUS_NOT_VALID;
 }
 
+#if    0//delete here,use fps_set_calibration_data function repace it.
 
 static VL53L1_CalibrationData_t laser_cali_data; //Add for save calibration data
 
@@ -536,7 +539,7 @@ static int cali_size = 372;
 static uint8_t golden_cali_data[] = {18,1,171,236,255,255,255,250,255,11,0,6,1,134,243,118,156,1,0,0,0,0,0,0,0,10,0,0,7,0,8,0,0,0,0,0,0,0,20,0,0,1,230,59,225,9,64,6,96,1,0,1,112,9,80,49,215,2,20,7,149,115,0,0,0,0,0,0,0,0,0,0,0,12,12,0,47,0,0,0,141,1,0,0,207,1,0,0,117,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,73,40,6,9,40,0,81,188,73,16,243,118,0,0,0,126,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,23,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,136,126,219,7,195,7,0,0,0,0,25,0,5,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 static int32_t get_size_from_file(const char *filename, uint64_t* size)
 {
-#if 0   //jinghuang delete
+
 	struct kstat stat;
 	mm_segment_t fs;
 	int rc = 0;
@@ -558,12 +561,10 @@ static int32_t get_size_from_file(const char *filename, uint64_t* size)
 	END:
 	set_fs(fs);
 	return rc;
-#endif
-return -1;
 }
 static int read_file_into_buffer(const char *filename, uint8_t* data, uint32_t size)
 {
-#if 0  //delete jinghuang
+ //delete jinghuang
 	struct file *fp;
 	mm_segment_t fs;
 	loff_t pos;
@@ -585,10 +586,8 @@ static int read_file_into_buffer(const char *filename, uint8_t* data, uint32_t s
 	filp_close(fp, NULL);
 
 	return rc;
-#endif
-return -1;
 }
-static int FP4SetCalibrationData(struct stmvl53l1_data *data) {
+static int FPSSetCalibrationData(struct stmvl53l1_data *data) {
 	int rc = 0;
 	int get_size = 0;
 	uint64_t size;
@@ -657,6 +656,7 @@ static int FP4SetCalibrationData(struct stmvl53l1_data *data) {
 	END:
 	return rc;
 }
+#endif
 static void stmvl53l1_setup_auto_config(struct stmvl53l1_data *data)
 {
 	/* default config is detect object below 300mm with 1s period */
@@ -862,7 +862,7 @@ static int stmvl53l1_start(struct stmvl53l1_data *data)
 		goto done;
 	}
 
-	rc = FP4SetCalibrationData(data);
+	rc = fps_set_calibration_data(data);
 	if (rc) {
 		vl53l1_errmsg("VL53L1 Set calibration data fail rc(%d)\n",rc);
 	}
@@ -3047,6 +3047,71 @@ done:
 	return rc;
 }
 
+//add for FPS,apply calidata,begin
+static  VL53L1_CalibrationData_t all_calidata;
+//#define DUMP_CALI_DATA_ENABLE
+
+static int ctrl_apply_calibration_data(struct stmvl53l1_data *data, void __user *p)
+{
+	int rc;
+    //for debug cali data
+    #ifdef DUMP_CALI_DATA_ENABLE
+    uint8_t dump_cali_data[512]={0};
+    int i=0;
+    #endif
+
+//	mutex_lock(&data->work_mutex);
+	memset(&all_calidata,0,sizeof(VL53L1_CalibrationData_t));
+	rc = copy_from_user(&all_calidata, p,sizeof(VL53L1_CalibrationData_t));//sizeof(VL53L1_CalibrationData_t)=408Byte
+	if (rc) {
+		vl53l1_errmsg("fail to copy calib data");
+		rc = -EFAULT;
+		//goto done;
+	}
+
+    //for debug cali data
+    #ifdef DUMP_CALI_DATA_ENABLE
+    memcpy(dump_cali_data,&all_calidata,sizeof(VL53L1_CalibrationData_t));
+    for(i=0;i<sizeof(VL53L1_CalibrationData_t);i++){
+    	vl53l1_errmsg("all_calidata[%d]=0x%x",i,dump_cali_data[i]);
+    }
+    #endif
+
+
+//done:
+//	mutex_unlock(&data->work_mutex);
+
+	return rc;
+}
+//static uint8_t golden_cali_data[] = {18,1,171,236,255,255,255,250,255,11,0,6,1,134,243,118,156,1,0,0,0,0,0,0,0,10,0,0,7,0,8,0,0,0,0,0,0,0,20,0,0,1,230,59,225,9,64,6,96,1,0,1,112,9,80,49,215,2,20,7,149,115,0,0,0,0,0,0,0,0,0,0,0,12,12,0,47,0,0,0,141,1,0,0,207,1,0,0,117,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,73,40,6,9,40,0,81,188,73,16,243,118,0,0,0,126,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,23,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,136,126,219,7,195,7,0,0,0,0,25,0,5,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+static int fps_set_calibration_data(struct stmvl53l1_data *data){
+    int rc=-1;
+	//memset(&all_calidata,0,sizeof(VL53L1_CalibrationData_t));
+	//for debug cali data
+	#if 0//#ifdef DUMP_CALI_DATA_ENABLE
+	uint8_t dump_cali_data[512]={0};
+	int i=0;
+    memcpy(dump_cali_data,&all_calidata,sizeof(VL53L1_CalibrationData_t));
+	for(i=0;i<sizeof(VL53L1_CalibrationData_t);i++){
+        vl53l1_errmsg("all_calidata[%d]=0x%x",i,dump_cali_data[i]);
+	}
+	#endif
+	//memcpy(&all_calidata,golden_cali_data,sizeof(golden_cali_data));
+   // vl53l1_errmsg(" all_calidata size: %d,golden_cali_data size:%d", sizeof(VL53L1_CalibrationData_t),sizeof(golden_cali_data));
+//	mutex_lock(&data->work_mutex);
+	rc = VL53L1_SetCalibrationData(&data->stdev, &all_calidata);
+	if (rc) {
+		vl53l1_errmsg("VL53L1_SetCalibrationData fail %d", rc);
+		rc = store_last_error(data, rc);
+	}else{
+		vl53l1_info("VL53L1_SetCalibrationData successfull %d", rc);
+	}
+	//mutex_unlock(&data->work_mutex);
+	return rc;
+}
+//add for FPS,apply calidata,end
+
+
 static int ctrl_zone_calibration_data(struct stmvl53l1_data *data,
 	void __user *p)
 {
@@ -3450,6 +3515,10 @@ static int stmvl53l1_ioctl_handler(
 	case VL53L1_IOCTL_CALIBRATION_DATA:
 		vl53l1_dbgmsg("VL53L1_IOCTL_CALIBRATION_DATA\n");
 		rc = ctrl_calibration_data(data, p);
+		break;
+	case VL53L1_IOCTL_APPLY_CALIBRATION_DATA://add for FPS,apply calidata
+		vl53l1_dbgmsg("VL53L1_IOCTL_APPLY_CALIBRATION_DATA\n");
+		rc = ctrl_apply_calibration_data(data, p);
 		break;
 	case VL53L1_IOCTL_PERFORM_CALIBRATION:
 		vl53l1_dbgmsg("VL53L1_IOCTL_PERFORM_CALIBRATION\n");
@@ -4099,6 +4168,8 @@ int stmvl53l1_intr_handler(struct stmvl53l1_data *data)
 }
 
 
+
+
 /**
  * One time device  setup
  *
@@ -4181,7 +4252,6 @@ int stmvl53l1_setup(struct stmvl53l1_data *data)
 		vl53l1_errmsg("%d error:%d\n", __LINE__, rc);
 		goto exit_unregister_dev_ps;
 	}
-
 	data->enable_sensor = 0;
 
 	data->poll_delay_ms = STMVL53L1_CFG_POLL_DELAY_MS;
