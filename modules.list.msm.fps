@@ -110,3 +110,4 @@ cqhci.ko
 crm.ko
 bcl_pmic5.ko
 haptic.ko
+eswin.ko
