@@ -117,7 +117,13 @@ int eph_send_frames(struct eph_data *ephdata)
     dev_info(dev, "Flashing device...\n");
 
     ephflash->frame_count = 1;
+#ifdef IC_UPDATE_DETECT
+    // skip dev info in the head of requested fw
+    ephflash->fw_pos = sizeof(struct eph_device_info);
+#else
     ephflash->fw_pos = 0;
+#endif
+
     while ((ephflash->fw_pos+BOOTLOADER_FRAME_CRC_SIZE) < (loff_t)ephflash->fw->size)
     {
 
@@ -140,13 +146,14 @@ int eph_send_frames(struct eph_data *ephdata)
             last_frame = true;
         }
 
-
+	usleep_range(1300, 1500);
         /* Write one frame to device */
         ret_val = eph_write_bootloader_frame(ephdata, ephflash->frame_size, ephflash->pframe, last_frame);
         if (0 != ret_val)
         {
             return ret_val;
         }
+	usleep_range(1300, 1500);
 
         dev_dbg(dev, "frame: %d sent \n", ephflash->frame_count);
         ephflash->frame_count++;
@@ -236,9 +243,10 @@ recheck:
 
 int eph_chg_force_bootloader(struct eph_data *ephdata)
 {
-    int ret_val;
     struct device *dev = &ephdata->commsdevice->dev;
     /* NOTE: interrupts on CHG should be disabled before calling this function */
+#if 0
+    int ret_val;
 
     gpio_set_value(ephdata->ephplatform->gpio_reset, GPIO_RESET_YES_LOW);
     ret_val = gpio_direction_output(ephdata->ephplatform->gpio_chg_irq, CHG_HELD_LOW);
@@ -246,10 +254,18 @@ int eph_chg_force_bootloader(struct eph_data *ephdata)
     msleep(EPH_RESET_HOLD_TIME);
     gpio_set_value(ephdata->ephplatform->gpio_reset, GPIO_RESET_NO_HIGH);
     msleep((EPH_POWERON_DELAY));
+#else
+    for (int i = 0; i < 10; i++) {
+        gpio_set_value(ephdata->ephplatform->gpio_reset, GPIO_RESET_YES_LOW);
+        msleep(EPH_RESET_HOLD_TIME);
+        gpio_set_value(ephdata->ephplatform->gpio_reset, GPIO_RESET_NO_HIGH);
+        msleep((EPH_POWERON_DELAY));
+    }
+#endif
 
-    dev_info(dev, "%s, Forced device into bootloader mode. ret_val: %d\n",  __func__, ret_val);
+    dev_info(dev, "%s, Forced device into bl mode.", __func__);
 
-    return ret_val;
+    return 0;
 }
 
 
