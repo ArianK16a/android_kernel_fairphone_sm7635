@@ -459,7 +459,7 @@ int eph_write_engineering_data(struct eph_data *ephdata, u16 len, u8 *buf)
              buf[0], (buf[1] | buf[2] << 8u));  
 
     /* wait a delay for TIC to be ready */
-    udelay(100);
+    usleep_range(4000, 4500);
     
     if (ret_val)
     {

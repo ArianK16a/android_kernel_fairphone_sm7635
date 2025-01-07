@@ -84,7 +84,17 @@ int eph_comms_two_stage_read(struct eph_data *ephdata, u8 *buf)
         if (ret_val)
         {
             dev_err(&ephdata->commsdevice->dev, "eph_comms_two_stage_read: Failed to read payload: (%d)", ret_val);
-        }
+        } else {
+            // bugfix: spi clk low when start to transfer data
+	        if ((buf[0] == buf[0+TLV_HEADER_SIZE]) && (buf[1] == buf[1+TLV_HEADER_SIZE]) && (buf[2] == buf[2+TLV_HEADER_SIZE])) {
+                uint16_t data_length = buf[TLV_LENGTH_FIELD] | ((uint16_t)buf[TLV_LENGTH_FIELD+1] << 8);
+		            for (int i = 0; i < data_length; i++) {
+                        buf[i] = buf[i+TLV_HEADER_SIZE];
+		            }
+		    ret_val = eph_comms_read(ephdata, TLV_HEADER_SIZE, &buf[data_length]);
+		    dev_info(&ephdata->commsdevice->dev, "glued the data %d %d %d", buf[0], buf[1], buf[2]);
+	        }
+	    }
     }
     else
     {
