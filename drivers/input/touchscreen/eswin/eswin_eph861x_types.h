@@ -159,6 +159,18 @@ struct eph_device_info
     u8 crc;
 };
 
+#ifdef IC_UPDATE_DETECT
+/* Fixed 8 bytes info */
+struct eph_firmware_info
+{
+    u8 product_id;
+    u8 variant_id;
+    u8 application_version_major;
+    u16 application_version_minor;
+    u16 bootloader_version;
+    u8 crc;
+};
+#endif
 
 /* Config update context */
 struct eph_device_settings
@@ -230,6 +242,7 @@ struct eph_data
     unsigned int last_brightness;
 
     struct work_struct force_baseline_work;
+    struct delayed_work heartbeat_work;
 
     /* Indicates whether device is updating its device settings */
     bool updating_device_settings;
