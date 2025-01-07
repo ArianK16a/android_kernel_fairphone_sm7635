@@ -38,7 +38,7 @@
 #include "eswin_eph861x_tlv.h"
 #include "eswin_eph861x_types.h"
 #include "eswin_eph861x_eswin.h"
-
+#include "eswin_eph861x_comms.h"
 
 int eph_check_firmware_format(struct device *dev, const struct firmware *fw)
 {
@@ -63,9 +63,53 @@ int eph_check_firmware_format(struct device *dev, const struct firmware *fw)
     return -EINVAL;
 }
 
+#ifdef IC_UPDATE_DETECT
+// return 0 means ic isn't need to update
+// return 1 means need to update
+int eph_check_ic_update(struct eph_data *ephdata, const struct firmware *fw)
+{
+    int ret = 0;
+    struct eph_firmware_info fw_info;
+    struct eph_device_info *dev_info;
+    struct device *dev = &ephdata->commsdevice->dev;
 
+    if (!fw)
+        return -EINVAL;
 
+    dev_info = &ephdata->ephdeviceinfo;
 
+    memcpy(&fw_info, fw->data, sizeof(struct eph_firmware_info));
+
+    if ((fw_info.product_id != dev_info->product_id) && (fw_info.variant_id !=
+        dev_info->variant_id)) {
+        dev_info(dev, "product version diff or requested fw no info in head");
+        return ret;
+    }
+
+    // check crc
+    if (fw_info.crc != eph_get_data_crc((u8 *)&fw_info, sizeof(struct eph_firmware_info) - 1)) {
+        dev_err(dev, "requested fw info is incompete");
+        return -EINVAL;
+    }
+
+    // check bootloader
+    if (fw_info.bootloader_version != dev_info->bootloader_version) {
+        dev_warn(dev, "firmware bootloader version diff");
+    }
+
+    // check app version
+    if ((fw_info.application_version_major != dev_info->application_version_major) ||
+        (fw_info.application_version_minor != dev_info->application_version_minor)) {
+        dev_info(dev, "firmware application version diff, wait update");
+        ret = 1;
+    }
+    dev_info(dev, "ic vers: %d %d, requested fw vers: %d %d\n", dev_info->application_version_major,
+		    dev_info->application_version_minor, fw_info.application_version_major,
+		    fw_info.application_version_minor);
+
+    return ret;
+}
+#endif
 
 int eph_update_file_name(struct device *dev,
                                 char **out_file_name,
@@ -349,6 +393,40 @@ void eph_regulator_disable(struct eph_data *ephdata)
 
     regulator_disable(ephdata->reg_vdd);
     regulator_disable(ephdata->reg_avdd);
+}
+
+void eph_recovery_device(struct eph_data *ephdata)
+{
+    int ret_val;
+
+    disable_irq(ephdata->chg_irq);
+    gpio_set_value(ephdata->ephplatform->gpio_reset, GPIO_RESET_YES_LOW);
+    if (ephdata->reg_vdd && regulator_is_enabled(ephdata->reg_vdd))
+        regulator_disable(ephdata->reg_vdd);
+    if (ephdata->reg_avdd && regulator_is_enabled(ephdata->reg_avdd))
+        regulator_disable(ephdata->reg_avdd);
+
+    msleep(500); // at least 100ms for ic discharge
+
+    if (ephdata->reg_vdd)
+        ret_val = regulator_enable(ephdata->reg_vdd);
+    if (ephdata->reg_avdd)
+        ret_val = regulator_enable(ephdata->reg_avdd);
+
+    msleep(20); // ic spec at least 10ms
+
+    gpio_set_value(ephdata->ephplatform->gpio_reset, GPIO_RESET_NO_HIGH);
+
+    // wait ic stable, ic spec should no comms action before ic has
+    // first data ready
+    // sleep over 200ms or wait INT be low
+    msleep(200);
+
+    enable_irq(ephdata->chg_irq);
+
+    dev_dbg(&ephdata->commsdevice->dev, "%s\n", __func__);
+
+    return;
 }
 
 void eph_reset_device(struct eph_data *ephdata)
