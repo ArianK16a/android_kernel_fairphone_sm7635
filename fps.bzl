@@ -307,6 +307,7 @@ def define_fps():
         "lib/test_user_copy.ko",
 	"drivers/misc/haptic_hv/haptic.ko",
 	"drivers/input/touchscreen/eswin/eswin.ko",
+	"drivers/emkit/emkit_info.ko",
     ]
 
     kernel_vendor_cmdline_extras = [
