@@ -262,6 +262,8 @@ static const char *const pmic_models[] = {
 	[52] = "PMR735B",
 	[58] = "PM8450",
 	[65] = "PM8010",
+	[78] = "PMM8650",
+	[79] = "PMM8650",
 };
 #endif /* CONFIG_DEBUG_FS */
 
@@ -593,6 +595,7 @@ static const struct soc_id soc_id[] = {
 	{ 641, "VOLCANO6P" },
 	{ 642, "CLIFFSP" },
 	{ 643, "CLIFFS7P" },
+	{ 682, "SG_PINEAPPLE" },
 	{ 549, "ANORAK" },
 	{ 554, "NEO-LA" },
 };
