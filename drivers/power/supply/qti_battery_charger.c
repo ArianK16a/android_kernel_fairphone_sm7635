@@ -125,6 +125,7 @@ enum usb_property_id {
 	USB_REAL_TYPE,
 	USB_TYPEC_COMPLIANT,
 	USB_SCOPE,
+	USB_TYPEC_CC_ORIENTATION,
 	USB_CONNECTOR_TYPE,
 	USB_SUSPEND_INPUT_CURRENT,
 	F_ACTIVE,
@@ -2086,6 +2087,23 @@ static ssize_t suspend_input_current_show(struct class *c, struct class_attribut
 }
 static CLASS_ATTR_RW(suspend_input_current);
 
+static ssize_t typec_cc_orientation_show(struct class *c, struct class_attribute *attr,
+				char *buf)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_USB];
+	int rc;
+
+	rc = read_property_id(bcdev, pst, USB_TYPEC_CC_ORIENTATION);
+	if (rc < 0)
+		return rc;
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n", pst->prop[USB_TYPEC_CC_ORIENTATION]);
+}
+static CLASS_ATTR_RO(typec_cc_orientation);
+
+
 
 QTI_CHARGER_RO_SHOW(usb_typec_compliant, PSY_TYPE_USB, USB_TYPEC_COMPLIANT);
 
@@ -2275,6 +2293,7 @@ static struct attribute *battery_class_attrs[] = {
 	&class_attr_usb_typec_compliant.attr,
 	&class_attr_charge_control_en.attr,
 	&class_attr_suspend_input_current.attr,
+	&class_attr_typec_cc_orientation.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(battery_class);
