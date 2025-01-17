@@ -291,6 +291,9 @@ def define_fps():
         "sound/soc/codecs/snd-soc-hdmi-codec.ko",
         "sound/usb/snd-usb-audio-qmi.ko",
         "drivers/input/misc/vl53L1/stmvl53l1.ko",
+        "drivers/emkit/emkit_info.ko",
+        "drivers/input/touchscreen/eswin/eswin.ko",
+        "drivers/misc/haptic_hv/haptic.ko",
     ]
 
     _fps_consolidate_in_tree_modules = _fps_in_tree_modules + [
@@ -305,9 +308,6 @@ def define_fps():
         "kernel/torture.ko",
         "lib/atomic64_test.ko",
         "lib/test_user_copy.ko",
-	"drivers/misc/haptic_hv/haptic.ko",
-	"drivers/input/touchscreen/eswin/eswin.ko",
-	"drivers/emkit/emkit_info.ko",
     ]
 
     kernel_vendor_cmdline_extras = [
