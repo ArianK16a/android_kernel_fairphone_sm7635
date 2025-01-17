@@ -290,6 +290,7 @@ def define_fps():
         "net/wireless/cfg80211.ko",
         "sound/soc/codecs/snd-soc-hdmi-codec.ko",
         "sound/usb/snd-usb-audio-qmi.ko",
+        "drivers/input/finger/focal_finger/focaltech_fp.ko",
         "drivers/input/misc/vl53L1/stmvl53l1.ko",
         "drivers/emkit/emkit_info.ko",
         "drivers/input/touchscreen/eswin/eswin.ko",
