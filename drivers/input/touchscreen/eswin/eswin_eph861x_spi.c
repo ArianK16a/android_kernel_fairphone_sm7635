@@ -23,6 +23,7 @@
 #include <linux/delay.h>
 #include <linux/spi/spi.h>
 #include <linux/dma-mapping.h>
+#include <linux/ktime.h>
 
 #include "eswin_eph861x_tlv.h"
 #include "eswin_eph861x_types.h"
@@ -43,7 +44,9 @@ int __eph_spi_read(struct eph_data *ephdata, u16 len, u8 *val)
     int ret_val;
     struct spi_message  spimsg;
     struct spi_transfer spitr;
+    static ktime_t first_t = 0, sec_t = 0;
 
+    //dev_info(&ephdata->commsdevice->dev, "%s\n", __func__);
     /* Read header - T(ype) and L(ength) */
     spi_message_init(&spimsg);
     memset(&spitr, 0,  sizeof(struct spi_transfer));
@@ -63,22 +66,33 @@ int __eph_spi_read(struct eph_data *ephdata, u16 len, u8 *val)
     spitr.tx_buf = ephdata->comms_send_buf;
     spitr.rx_buf = ephdata->comms_receive_buf;
     spitr.len = len;
+#if 0
     spitr.tx_dma = ephdata->comms_dma_handle_tx;
     spitr.rx_dma = ephdata->comms_dma_handle_rx;
 #if KERNEL_VERSION(6, 9, 0) >= LINUX_VERSION_CODE
     spimsg.is_dma_mapped = 1;
 #endif
+#endif
+    spitr.cs_change = 0;
 
     //TODO Kernel version 5.5 introduces support for CS to CLK delay which will be useful when implementing low power sleep modes
     spi_message_add_tail(&spitr, &spimsg);
+    //first_t = ktime_get();
+    if (sec_t != 0) {
+        printk("eswin t1 %lld\n", ktime_to_us(ktime_sub(sec_t, first_t)));
+    }
+    first_t = ktime_get();
     ret_val = spi_sync(ephdata->commsdevice, &spimsg);
+    sec_t = ktime_get();
 
     if (ret_val < 0)
     {
         dev_err(&ephdata->commsdevice->dev, "Error reading from spi (%d)", ret_val);
         return ret_val;
-    }       
+    }
 
+    printk("eswin t2 %lld, %lld\n", ktime_to_us(first_t), ktime_to_us(sec_t));
+    printk("eswin t3 %lld\n", ktime_to_us(ktime_sub(sec_t, first_t)));
 
     /* include T and L */
     memcpy(val, ephdata->comms_receive_buf, len);
@@ -91,7 +105,9 @@ int __eph_spi_write(struct eph_data *ephdata, u16 len, const u8 *val)
     int ret_val;
     struct spi_message  spimsg;
     struct spi_transfer spitr;
+    ktime_t first_t, sec_t;
  
+    //dev_info(&ephdata->commsdevice->dev, "%s\n", __func__);
 
     if ((SPI_APP_BUF_SIZE_WRITE) < len)
     {
@@ -113,13 +129,18 @@ int __eph_spi_write(struct eph_data *ephdata, u16 len, const u8 *val)
     spimsg.is_dma_mapped = 1;
 #endif
 #endif
+    spitr.cs_change = 0;
     spi_message_add_tail(&spitr, &spimsg);
+    first_t = ktime_get();
     ret_val = spi_sync(ephdata->commsdevice, &spimsg);
+    sec_t = ktime_get();
     if (ret_val < 0)
     {
         dev_err(&ephdata->commsdevice->dev, "Error writing to spi (%d)", ret_val);
         return ret_val;
     }
+
+    printk("eswin t %lld, %lld\n", ktime_to_us(first_t), ktime_to_us(sec_t));
 
     return 0;
 }
@@ -128,7 +149,6 @@ int __eph_spi_write(struct eph_data *ephdata, u16 len, const u8 *val)
 int eph_comms_read(struct eph_data *ephdata, u16 len, u8 *buf)
 {
     int ret_val = 0;
-
 
     if ((SPI_APP_BUF_SIZE_READ) < len)
     {
@@ -197,7 +217,7 @@ int eph_comms_write(struct eph_data *ephdata, u16 len, u8 *buf)
 
 int eph_comms_specific_checks_spi(struct comms_device *commsdevice)
 {
-
+#if 0
     if ( (commsdevice->bits_per_word && commsdevice->bits_per_word != 8) ||
          !(commsdevice->mode & SPI_CPHA) ||
          !(commsdevice->mode & SPI_CPOL) )
@@ -205,11 +225,14 @@ int eph_comms_specific_checks_spi(struct comms_device *commsdevice)
         dev_err(&commsdevice->dev, "unexpected spi device setup: SPI mode(%d), bits_per_word(%d) \n", commsdevice->mode, commsdevice->bits_per_word);
         return -EINVAL;
     }
+#else
+    printk("eswin eph skip check spi\n");
+#endif
 
     /* initialise SPI dummy buffers */
     memset(&spi_tx_dummy_buf[0], 0xFF, SPI_APP_BUF_SIZE_READ);
 
-  return 0;
+    return spi_setup(commsdevice);
 }
 
 void eph_comms_driver_data_set_spi(struct comms_device *commsdevice, struct eph_data *ephdata)
@@ -218,7 +241,7 @@ void eph_comms_driver_data_set_spi(struct comms_device *commsdevice, struct eph_
     snprintf(ephdata->phys, sizeof(ephdata->phys), "spi-%d/input0", commsdevice->master->bus_num);
 #endif
     dev_info(&commsdevice->dev, "%s %s\n", __func__, ephdata->phys);
-
+pr_err("eph_comms_driver_data_set_spi------\n");
     spi_set_drvdata(commsdevice, ephdata);
     if (0xff != spi_tx_dummy_buf[0])
     {
