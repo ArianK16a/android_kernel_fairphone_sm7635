@@ -1707,9 +1707,9 @@ static int spi_geni_mas_setup(struct spi_master *spi)
 		mas->tx_wm = 1;
 	}
 setup_ipc:
-	dev_info(mas->dev, "tx_fifo %d rx_fifo %d tx_width %d\n",
+	/*dev_dbg(mas->dev, "zxzspi tx_fifo %d rx_fifo %d tx_width %d\n",
 		mas->tx_fifo_depth, mas->rx_fifo_depth,
-		mas->tx_fifo_width);
+		mas->tx_fifo_width);*/
 	if (!mas->shared_ee)
 		mas->setup = true;
 
@@ -1843,8 +1843,9 @@ static int spi_geni_unprepare_transfer_hardware(struct spi_master *spi)
 
 		if (!mas->is_la_vm) {
 			/* Do this only for non TVM LA usecase */
-			ret = pinctrl_select_state(mas->geni_pinctrl,
-						mas->geni_gpio_sleep);
+			//ret = pinctrl_select_state(mas->geni_pinctrl,
+			//			mas->geni_gpio_sleep);
+			//printk("eph spi master pin set sleep\n");
 		}
 
 		if (ret)
@@ -2453,6 +2454,7 @@ static void spi_get_dt_property(struct platform_device *pdev,
 
 	geni_mas->dis_autosuspend =
 	of_property_read_bool(pdev->dev.of_node, "qcom,disable-autosuspend");
+	geni_mas->dis_autosuspend = true ;
 	/*
 	 * shared_se property is set when spi is being used simultaneously
 	 * from two Execution Environments.

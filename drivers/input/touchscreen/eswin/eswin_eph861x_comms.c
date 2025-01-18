@@ -58,10 +58,11 @@ int eph_comms_two_stage_read(struct eph_data *ephdata, u8 *buf)
     /* offset not used for header */
     // note: SPI has difference with i2c, SPI read success return 0,but i2c retutn read count // add by hh
     ret_val = eph_comms_read(ephdata, sizeof(struct tlv_header),(u8*)&tlvheader);
+#if 0
     dev_dbg(&ephdata->commsdevice->dev,
              "ESWIN - eph_comms_two_stage_read first stage type: %d, length: %d, ret_val %d ",
              tlvheader.type, tlvheader.length, ret_val);
-
+#endif
     if (!ret_val)
     {
         /* saturate to 16 bit type */
@@ -70,17 +71,19 @@ int eph_comms_two_stage_read(struct eph_data *ephdata, u8 *buf)
 
         /* wait a delay for TIC to be ready */
         udelay(50);
-
+#if 0
         dev_info(&ephdata->commsdevice->dev,
                  "eph_comms_two_stage_read: type: %u length: %u ",
                  tlvheader.type, length);  
-
+#endif
         /* do a read */
         /* Read control configuration response */
         ret_val = eph_comms_read(ephdata, length, buf);
+#if 0
         dev_dbg(&ephdata->commsdevice->dev,
                  "eph_comms_two_stage_read: ESWIN - eph_comms_two_stage_read second stage ret_val %d, Type 0x%x, length_LSB 0x%x, length_MSB 0x%x, buff[3] 0x%x, buff[4] 0x%x, buff[5] 0x%x, buff[6] 0x%x, buff[7] 0x%x, buff[8] 0x%x, buff[9] 0x%x, buff[10] 0x%x, buff[11] 0x%x",
                  ret_val, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9], buf[10], buf[11]);
+#endif
         if (ret_val)
         {
             dev_err(&ephdata->commsdevice->dev, "eph_comms_two_stage_read: Failed to read payload: (%d)", ret_val);
@@ -92,7 +95,7 @@ int eph_comms_two_stage_read(struct eph_data *ephdata, u8 *buf)
                         buf[i] = buf[i+TLV_HEADER_SIZE];
 		            }
 		    ret_val = eph_comms_read(ephdata, TLV_HEADER_SIZE, &buf[data_length]);
-		    dev_info(&ephdata->commsdevice->dev, "glued the data %d %d %d", buf[0], buf[1], buf[2]);
+		    //dev_info(&ephdata->commsdevice->dev, "glued the data %d %d %d", buf[0], buf[1], buf[2]);
 	        }
 	    }
     }
@@ -139,21 +142,24 @@ int eph_wait_for_chg(struct eph_data *ephdata)
     return timeout_counter > 0 ? 0 : -1;
 }
 
-
+u32 ctl_data[2] = { 100, 0 };
 
 int eph_comms_specific_checks(struct comms_device *commsdevice)
 {
     int ret_val;
 #if (ESWIN_EPH861X_SPI)
-#if KERNEL_VERSION(5, 15, 0) >= LINUX_VERSION_CODE
+#if 0//KERNEL_VERSION(5, 15, 0) >= LINUX_VERSION_CODE
     struct spi_delay d;
     d.value = 100;
     d.unit = SPI_DELAY_UNIT_USECS;
     commsdevice->cs_setup = d;
+    pr_err("eph_comms_specific_checks----11a----\n");
 #else
-    //TODO: make sure cs to sck delay 100us
+    pr_err("eph_add 100us delay----\n");
+    commsdevice->controller_data = ctl_data;
 #endif
     commsdevice->mode = 3;
+    //commsdevice->chip_select = 0;
     ret_val = eph_comms_specific_checks_spi(commsdevice);
 #endif
 #if (ESWIN_EPH861X_I2C)

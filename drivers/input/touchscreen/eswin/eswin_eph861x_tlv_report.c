@@ -146,10 +146,11 @@ void eph_recv_event_report_contianer(struct eph_data *ephdata, u8 *message)
         /* Get the event report type and length */
         event_type = (message[message_offset] & EVENT_REPORT_TYPE_MASK) >> EVENT_REPORT_TYPE_OFFSET;
         event_length = (message[message_offset] & EVENT_REPORT_LENGTH_MASK);
-
+#if 0
         dev_info(dev,
              "report - offset: %u event_type: %u event_length: %u ",
-             message_offset, event_type, event_length);  
+             message_offset, event_type, event_length);
+#endif
         switch (event_type)
         {
 
@@ -357,22 +358,23 @@ static void eph_recv_touch_report(struct eph_data *ephdata, u8 *message)
         /* touch tool type on a release will always show MT_TOOL_FINGER - Optional information - Doesnt matter the touch_tool_type for a release */
         input_mt_report_slot_state(ephdata->inputdev, touch_tool_type, is_active);
         input_report_abs(ephdata->inputdev, ABS_MT_PRESSURE, touch_pressure);
-
+#if 0
         dev_dbg(dev,
                 "[%u] %s,  RELEASE_TYPE,  ABS_MT_PRESSURE:%d touch_tool_type:%d is_active:%d BTN_TOUCH:%d\n",
                 touch_id_slot,
                 get_touch_type_str(touch_type), touch_pressure, touch_tool_type, is_active, 0);
-
+#endif
         stored_touches &= (~(1 << touch_id_slot));
     }
     else
     {
+#if 0
         dev_dbg(dev,
                 "[%u] %s POSTITION:(%u, %u) ABS_MT_TOUCH_MAJOR:%d ABS_MT_TOUCH_MINOR:%d ABS_MT_PRESSURE:%d touch_tool_type:%d is_active:%d\n",
                 touch_id_slot,
                 get_touch_type_str(touch_type),
                 position_x, position_y, touch_major_axis, touch_minor_axis, touch_pressure, touch_tool_type, is_active);
-
+#endif
         /* Sets ABS_MT_TRACKING_ID if active or -1 if not */
         input_mt_report_slot_state(ephdata->inputdev, touch_tool_type, is_active);
 
@@ -540,7 +542,7 @@ int eph_buffer_report(struct eph_data *ephdata, u8 *message)
     /* Clear report buffer lock as access within the interrupt is complete */
     mutex_unlock(&ephdata->sysfs_report_buffer_lock);
 
-    dev_dbg(&ephdata->commsdevice->dev, "ESWIN report buffered. Type: %d length: %d ", tlvheader.type, tlvheader.length);
+    dev_dbg(&ephdata->commsdevice->dev, "eswin T:%d len:%d", tlvheader.type, tlvheader.length);
 
 
     return 0;
