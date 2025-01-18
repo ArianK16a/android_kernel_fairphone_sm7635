@@ -136,7 +136,7 @@ static int eph_read_and_process_messages(struct eph_data *ephdata)
     struct device *dev = &ephdata->commsdevice->dev;
     int ret_val;
 
-    dev_dbg(&ephdata->commsdevice->dev, "%s >\n", __func__);
+    //dev_dbg(&ephdata->commsdevice->dev, "%s >\n", __func__);
 
     mutex_lock(&ephdata->comms_mutex);
     /* Read report */
@@ -428,7 +428,7 @@ static int eph_acquire_irq(struct eph_data *ephdata)
         ret_val = request_threaded_irq(ephdata->chg_irq,
                                        NULL,
                                        eph_interrupt,
-                                       IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
+                                       IRQF_TRIGGER_LOW | IRQF_ONESHOT,
                                        commsdevice_name,
                                        ephdata);
         if (ret_val)
@@ -438,7 +438,7 @@ static int eph_acquire_irq(struct eph_data *ephdata)
         }
 
         /* Presence of ephdata->chg_irq means IRQ initialised */
-        dev_info(&ephdata->commsdevice->dev, "gpio_to_irq %lu -> %d\n", ephdata->ephplatform->gpio_chg_irq, ephdata->chg_irq);
+        dev_info(&ephdata->commsdevice->dev, "zxz gpio_to_irq %lu -> %d\n", ephdata->ephplatform->gpio_chg_irq, ephdata->chg_irq);
     }
     else
     {
@@ -1742,20 +1742,20 @@ static int send_heartbeat(struct eph_data *ephdata)
     int retry = 1000;
 relock:
     mutex_lock(&ephdata->comms_mutex);
-    if (eph_wait_for_chg(ephdata) != 0) {
+    if (eph_read_chg(ephdata) == 0) {
     	// read the data if irq flag is tiggered by falling
-	if ((irq_get_trigger_type(ephdata->chg_irq) == IRQF_TRIGGER_FALLING) &&
-	     (retry <= 0)) {
+	    if ((irq_get_trigger_type(ephdata->chg_irq) == IRQF_TRIGGER_FALLING) &&
+	     (retry >= 0)) {
             if (eph_read_report(ephdata, ephdata->report_buf)) {
                 ret = eph_handle_report(ephdata, ephdata->report_buf);
                 memset(ephdata->report_buf, 0, COMMS_BUF_SIZE);
                 dev_info(&ephdata->commsdevice->dev, "Process unexpected msg %d\n", ret);
+	        }
+            retry--;
 	    }
-	}
-	retry--;
     	mutex_unlock(&ephdata->comms_mutex);
-	usleep_range(900, 1000);
-	goto relock;
+	    usleep_range(900, 1000);
+	    goto relock;
     }
     ret = eph_read_device_information(ephdata);
     mutex_unlock(&ephdata->comms_mutex);
@@ -1783,17 +1783,23 @@ static void heartbeat_work_handler(struct work_struct *work)
             dev_warn(dev, "sys suspend, ic in boot mode!\n");
             goto ic_reset;
         } else {
+#if 0
             // ic in gesture mode, fod mode
-	    if (ephdata->gesture_wakeup_enable == true) {
-                ret = send_heartbeat(ephdata);
-                if (ret) {
-                    dev_err(dev, "sys suspend, heartbeat fail %d\n", ret);
-                    goto ic_recovery;
-                }
-	    } else {
-		// ic in deep mode or spi in low power mode
-                dev_info(dev, "sys suspend, ic in deep mode or spi in lp mode");
-	    }
+            if (ephdata->gesture_wakeup_enable == true) {
+                    ret = send_heartbeat(ephdata);
+                    if (ret) {
+                        dev_err(dev, "sys suspend, heartbeat fail %d\n", ret);
+                        goto ic_recovery;
+                    }
+
+
+            } else {
+            // ic in deep mode or spi in low power mode
+                    dev_info(dev, "sys suspend, ic in deep mode or spi in lp mode");
+            }
+#else
+        dev_info(dev, "sys suspend, ic in deep mode or spi in lp mode");
+#endif
         }
     } else {
         if (ephdata->in_bootloader) {
@@ -1803,7 +1809,7 @@ static void heartbeat_work_handler(struct work_struct *work)
             // ic in active or idle mode
             ret = send_heartbeat(ephdata);
             if (ret) {
-                dev_err(dev, "sys suspend, heartbeat fail %d\n", ret);
+                dev_err(dev, "sys normal, heartbeat fail %d\n", ret);
                 goto ic_recovery;
             }
         }
@@ -1836,13 +1842,16 @@ static int eph_probe(struct comms_device *commsdevice, const struct comms_device
     struct device *dev = &commsdevice->dev;
 
     dev_dbg(dev, "%s >>>\n", __func__);
+    pr_err("eph_probe----11--100000ms--\n");
+
+    msleep(10000);
 
     ret_val = eph_comms_specific_checks(commsdevice);
     if (ret_val)
     {
         return -EINVAL;
     }
-
+    pr_err("eph_probe----22----\n");
     ephplatform = eph_platform_data_get(commsdevice);
     if (IS_ERR(ephplatform))
     {
@@ -1873,7 +1882,8 @@ static int eph_probe(struct comms_device *commsdevice, const struct comms_device
     ephdata->ephplatform = ephplatform;
     eph_comms_driver_data_set(commsdevice, ephdata);
 
-    ephdata->pinctrl = devm_pinctrl_get(&commsdevice->dev);
+    //ephdata->pinctrl = devm_pinctrl_get(&commsdevice->dev);
+    ephdata->pinctrl = NULL;
     if (IS_ERR_OR_NULL(ephdata->pinctrl)) {
         dev_warn(dev, "Could not get pinctrl\n");
     } else {
@@ -1928,7 +1938,7 @@ static int eph_probe(struct comms_device *commsdevice, const struct comms_device
     }
 
     //wait ic boot done
-    msleep(200);
+    msleep(5000);
 
     /* Need to have IRQ disabled before calling eph_initialize() as it re-enables it */
     disable_irq(ephdata->chg_irq);
@@ -1951,21 +1961,22 @@ static int eph_probe(struct comms_device *commsdevice, const struct comms_device
     if (ret_val) {
 	dev_warn(dev, "read ic info failed %d", ret_val);
     } else {
-        dev_info(dev, "Product ID: %u Variant ID: %u Application_version_major %u Application_version_minor: %u Bootloader_version: %u Protocol_version: %u CRC:%u\n",
+        dev_info(dev, "zxz Product ID: %u Variant ID: %u Application_version_major %u Application_version_minor: %u Bootloader_version: %u Protocol_version: %u CRC:%u\n",
                  ephdata->ephdeviceinfo.product_id, ephdata->ephdeviceinfo.variant_id,
                  ephdata->ephdeviceinfo.application_version_major, ephdata->ephdeviceinfo.application_version_minor,
                  ephdata->ephdeviceinfo.bootloader_version, ephdata->ephdeviceinfo.protocol_version, ephdata->ephdeviceinfo.crc);
     }
-
+#if 1
     ret_val = eph_load_fw(&commsdevice->dev);
-    if (ret_val) {
-        dev_err(dev, "The firmware update failed(%d)\n", ret_val);
-        goto err_free_irq;
-    } else {
-        dev_info(dev, "The firmware update done");
-        //delay for ic stabel
-        msleep(200);
-    }
+    // if (ret_val) {
+    //     dev_err(dev, "The firmware update failed(%d)\n", ret_val);
+    //     goto err_free_irq;
+    // } else {
+    //     dev_info(dev, "The firmware update done");
+    //     //delay for ic stabel
+    //     msleep(200);
+    // }
+#endif
 
     ret_val = eph_initialize(ephdata);
     if (ret_val)

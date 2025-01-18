@@ -343,10 +343,11 @@ void eph_regulator_enable(struct eph_data *ephdata)
 {
     int ret_val;
 
-    dev_dbg(&ephdata->commsdevice->dev, "%s >\n", __func__);
+    dev_err(&ephdata->commsdevice->dev, "zcy %s >\n", __func__);
 
     if (!ephdata->reg_vdd || !ephdata->reg_avdd)
     {
+        dev_err(&ephdata->commsdevice->dev, "zcy %s out 1\n", __func__);
         return;
     }
 
@@ -355,12 +356,14 @@ void eph_regulator_enable(struct eph_data *ephdata)
     ret_val = regulator_enable(ephdata->reg_vdd);
     if (ret_val)
     {
+        dev_err(&ephdata->commsdevice->dev, "zcy %s out 2\n", __func__);
         return;
     }
 
     ret_val = regulator_enable(ephdata->reg_avdd);
     if (ret_val)
     {
+        dev_err(&ephdata->commsdevice->dev, "zcy %s out 3\n", __func__);
         return;
     }
 
@@ -380,6 +383,7 @@ retry_wait:
         goto retry_wait;
     }
     ephdata->in_bootloader = false;
+    dev_err(&ephdata->commsdevice->dev, "zcy %s out 4\n", __func__);
  }
 
 void eph_regulator_disable(struct eph_data *ephdata)
