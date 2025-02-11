@@ -2010,7 +2010,7 @@ static int eph_probe(struct comms_device *commsdevice, const struct comms_device
     ephdata->lp = false;
     ephdata->irq_wake = false;
 
-    schedule_delayed_work(&ephdata->heartbeat_work, msecs_to_jiffies(5000));
+    //schedule_delayed_work(&ephdata->heartbeat_work, msecs_to_jiffies(5000));
 
     dev_info(dev, "%s <\n", __func__);
     return 0;

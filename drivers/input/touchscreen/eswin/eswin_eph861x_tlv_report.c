@@ -429,7 +429,6 @@ void eph_clear_all_host_touch_slots(struct eph_data *ephdata)
         return;
     }
 
-    mutex_lock(&ephdata->inputdev->mutex);
     for (id = 0; id < CONFIG_SUPPORTED_TOUCHES; id++)
     {
         input_mt_slot(ephdata->inputdev, id);
@@ -439,7 +438,6 @@ void eph_clear_all_host_touch_slots(struct eph_data *ephdata)
     input_sync(ephdata->inputdev);
     stored_touches = 0;
     prev_stored_touches = 0;
-    mutex_unlock(&ephdata->inputdev->mutex);
 }
 
 
