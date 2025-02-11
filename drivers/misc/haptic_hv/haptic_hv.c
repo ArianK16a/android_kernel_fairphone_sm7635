@@ -17,7 +17,7 @@
 #include "haptic_hv_reg.h"
 
 #define HAPTIC_HV_DRIVER_VERSION	"v1.9.0"
-
+#define HAPTIC_GAIN 0x45
 char *aw_ram_name = "haptic_ram.bin";
 char aw_rtp_name[][AW_RTP_NAME_MAX] = {
 	{"haptic_rtp_osc_24K_5s.bin"},
@@ -3707,6 +3707,7 @@ static void haptic_init(struct aw_haptic *aw_haptic)
 	aw_haptic->func->set_bst_vol(aw_haptic, aw_haptic->vmax);
 	aw_haptic->func->auto_bst_enable(aw_haptic, aw_haptic->info.is_enabled_auto_bst);
 	aw_haptic->func->vbat_mode_config(aw_haptic, AW_CONT_VBAT_HW_COMP_MODE);
+	aw_haptic->func->set_gain(aw_haptic, HAPTIC_GAIN);
 	/* f0 calibration */
 	f0_cali(aw_haptic);
 	mutex_unlock(&aw_haptic->lock);
