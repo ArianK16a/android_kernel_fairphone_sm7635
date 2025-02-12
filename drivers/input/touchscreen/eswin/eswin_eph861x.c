@@ -854,6 +854,7 @@ static int eph_load_fw(struct device *dev)
 {
     struct eph_data *ephdata = (struct eph_data*)dev_get_drvdata(dev);
     int ret_val;
+    int reload_cnt = 5;
 #if (ESWIN_EPH861X_SPI)
     u32 default_spi_speed = ephdata->commsdevice->max_speed_hz;
 #endif
@@ -899,6 +900,8 @@ static int eph_load_fw(struct device *dev)
     spi_setup(ephdata->commsdevice);
 #endif
 
+reload:
+
     ret_val = eph_enter_bootloader(ephdata);
     if (ret_val)
     {
@@ -908,6 +911,9 @@ static int eph_load_fw(struct device *dev)
     ret_val = eph_send_frames(ephdata);
     if (ret_val)
     {
+        reload_cnt--;
+        if (reload_cnt > 0)
+            goto reload;
         goto exit_bootenv;
     }
 
@@ -1968,14 +1974,14 @@ static int eph_probe(struct comms_device *commsdevice, const struct comms_device
     }
 #if 1
     ret_val = eph_load_fw(&commsdevice->dev);
-    // if (ret_val) {
-    //     dev_err(dev, "The firmware update failed(%d)\n", ret_val);
-    //     goto err_free_irq;
-    // } else {
-    //     dev_info(dev, "The firmware update done");
-    //     //delay for ic stabel
-    //     msleep(200);
-    // }
+    if (ret_val) {
+        dev_err(dev, "The firmware update failed(%d)\n", ret_val);
+        //goto err_free_irq;
+    } else {
+        dev_info(dev, "The firmware update done");
+        //delay for ic stabel
+        usleep_range(300000, 320000);
+    }
 #endif
 
     ret_val = eph_initialize(ephdata);
