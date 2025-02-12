@@ -23,7 +23,6 @@
 #include <linux/delay.h>
 #include <linux/spi/spi.h>
 #include <linux/dma-mapping.h>
-#include <linux/ktime.h>
 
 #include "eswin_eph861x_tlv.h"
 #include "eswin_eph861x_types.h"
@@ -44,7 +43,6 @@ int __eph_spi_read(struct eph_data *ephdata, u16 len, u8 *val)
     int ret_val;
     struct spi_message  spimsg;
     struct spi_transfer spitr;
-    static ktime_t first_t = 0, sec_t = 0;
 
     //dev_info(&ephdata->commsdevice->dev, "%s\n", __func__);
     /* Read header - T(ype) and L(ength) */
@@ -77,13 +75,7 @@ int __eph_spi_read(struct eph_data *ephdata, u16 len, u8 *val)
 
     //TODO Kernel version 5.5 introduces support for CS to CLK delay which will be useful when implementing low power sleep modes
     spi_message_add_tail(&spitr, &spimsg);
-    //first_t = ktime_get();
-    if (sec_t != 0) {
-        printk("eswin t1 %lld\n", ktime_to_us(ktime_sub(sec_t, first_t)));
-    }
-    first_t = ktime_get();
     ret_val = spi_sync(ephdata->commsdevice, &spimsg);
-    sec_t = ktime_get();
 
     if (ret_val < 0)
     {
@@ -91,8 +83,6 @@ int __eph_spi_read(struct eph_data *ephdata, u16 len, u8 *val)
         return ret_val;
     }
 
-    printk("eswin t2 %lld, %lld\n", ktime_to_us(first_t), ktime_to_us(sec_t));
-    printk("eswin t3 %lld\n", ktime_to_us(ktime_sub(sec_t, first_t)));
 
     /* include T and L */
     memcpy(val, ephdata->comms_receive_buf, len);
@@ -105,7 +95,6 @@ int __eph_spi_write(struct eph_data *ephdata, u16 len, const u8 *val)
     int ret_val;
     struct spi_message  spimsg;
     struct spi_transfer spitr;
-    ktime_t first_t, sec_t;
  
     //dev_info(&ephdata->commsdevice->dev, "%s\n", __func__);
 
@@ -131,16 +120,12 @@ int __eph_spi_write(struct eph_data *ephdata, u16 len, const u8 *val)
 #endif
     spitr.cs_change = 0;
     spi_message_add_tail(&spitr, &spimsg);
-    first_t = ktime_get();
     ret_val = spi_sync(ephdata->commsdevice, &spimsg);
-    sec_t = ktime_get();
     if (ret_val < 0)
     {
         dev_err(&ephdata->commsdevice->dev, "Error writing to spi (%d)", ret_val);
         return ret_val;
     }
-
-    printk("eswin t %lld, %lld\n", ktime_to_us(first_t), ktime_to_us(sec_t));
 
     return 0;
 }
