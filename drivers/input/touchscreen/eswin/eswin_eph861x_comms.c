@@ -142,7 +142,7 @@ int eph_wait_for_chg(struct eph_data *ephdata)
     return timeout_counter > 0 ? 0 : -1;
 }
 
-u32 ctl_data[2] = { 100, 0 };
+u32 ctl_data[2] = { 200, 0 };
 
 int eph_comms_specific_checks(struct comms_device *commsdevice)
 {
@@ -155,7 +155,7 @@ int eph_comms_specific_checks(struct comms_device *commsdevice)
     commsdevice->cs_setup = d;
     pr_err("eph_comms_specific_checks----11a----\n");
 #else
-    pr_err("eph_add 100us delay----\n");
+    pr_err("eph_add 200us delay----\n");
     commsdevice->controller_data = ctl_data;
 #endif
     commsdevice->mode = 3;
