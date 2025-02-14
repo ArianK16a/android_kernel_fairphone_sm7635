@@ -599,20 +599,27 @@ VL53L1_Error VL53L1_f_030(
 
 	LOG_FUNCTION_START("");
 
+
 	*pphase = VL53L1_MAX_ALLOWED_PHASE;
 
-	for (lb = VL53L1_p_022; lb <= VL53L1_p_026; lb++) {
-
+	for (lb = VL53L1_p_022; lb < VL53L1_p_026; lb++) {
 
 		if (lb < 0)
 			i =  lb + (int16_t)VL53L1_p_031;
+        else if(VL53L1_p_031==0)//jinghuang:fix crash for  tof
+			i =  lb;
 		else
 			i =  lb % (int16_t)VL53L1_p_031;
+        //jinghuang:fix crash for  tof begin
+        if(i>=VL53L1_HISTOGRAM_BUFFER_SIZE)
+            i=VL53L1_HISTOGRAM_BUFFER_SIZE-1;
 
-		VL53L1_p_008 =
-			(int64_t)pbins->bin_data[i] -
-			(int64_t)pbins->VL53L1_p_004;
-
+        if (pbins == NULL){
+            *pphase = VL53L1_MAX_ALLOWED_PHASE;
+            return status;
+        }
+        VL53L1_p_008 =(int64_t)(*((int32_t *)pbins->bin_data + i) -pbins->VL53L1_p_004);
+        //jinghuang:fix crash for  tof end
 
 		if (clip_events > 0 && VL53L1_p_008 < 0)
 			VL53L1_p_008 = 0;
@@ -643,7 +650,6 @@ VL53L1_Error VL53L1_f_030(
 
 		*pphase = (uint32_t)weighted_sum;
 	}
-
 	LOG_FUNCTION_END(status);
 
 	return status;
