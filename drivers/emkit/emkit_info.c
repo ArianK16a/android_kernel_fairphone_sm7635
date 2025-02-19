@@ -25,8 +25,9 @@
 
 struct kobject *g_emkit_kobj;
 EXPORT_SYMBOL_GPL(g_emkit_kobj);
-
-
+struct kobject *g_sysinfo_kobj;
+static int hw_sku = 0;
+char board_version[10] = "";
 
 struct emkit_info_data g_emkit_info = {
     .kobj = NULL,
@@ -223,6 +224,60 @@ static struct kobj_attribute emkit_attrs[] = {
 
 #define EMKIT_ATTRS_NUM (sizeof(emkit_attrs) / sizeof(emkit_attrs[0]))
 
+static ssize_t sysfs_hw_version_show(struct kobject *kobj,
+                struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s\n", board_version);
+}
+
+static struct kobj_attribute sysfs_attrs[] = {
+	__ATTR(hw_version, S_IWUSR | S_IWGRP | S_IRUSR | S_IRGRP,
+			 sysfs_hw_version_show, NULL),
+};
+
+static int board_check_hw_version(struct platform_device * pdev)
+{
+    int ret = 0;
+    unsigned char attr_count;
+    ret = of_property_read_u32(pdev->dev.of_node, "oem,sku", &hw_sku);
+    if (ret) {
+        EMLOG("unable to read oem,sku (ret=%d)", ret);
+        return ret;
+    }
+    if (hw_sku == 600) {
+        strcpy(board_version, "UNKNOWN");
+    } else if (hw_sku == 601) {
+        strcpy(board_version, "EVT1");
+    } else if (hw_sku == 602) {
+        strcpy(board_version, "EVT2");
+    } else if (hw_sku == 603) {
+        strcpy(board_version, "DVT1-1");
+    } else if (hw_sku == 604) {
+        strcpy(board_version, "DVT1-2");
+    } else if (hw_sku == 605) {
+        strcpy(board_version, "DVT2-1");
+    } else if (hw_sku == 606) {
+        strcpy(board_version, "DVT2-2");
+    } else if (hw_sku == 607) {
+        strcpy(board_version, "PVT");
+    } else if (hw_sku == 608) {
+        strcpy(board_version, "MP");
+    }
+    g_sysinfo_kobj = kobject_create_and_add("info", NULL) ;
+    if (g_sysinfo_kobj == NULL) {
+        EMLOG("kobject_create_and_add() g_sysinfo_kobj failed!\n");
+        return -ENOMEM;
+    }
+    for (attr_count = 0; attr_count < ARRAY_SIZE(sysfs_attrs); attr_count++) {
+		ret = sysfs_create_file(g_sysinfo_kobj, &sysfs_attrs[attr_count].attr);
+		if (ret) {
+			EMLOG("%s: sysfs_create_group_file hw_version failed!\n", __func__);
+			return -ENOMEM;
+		}
+	}
+    return 0;
+}
+
 static int emkit_info_probe(struct platform_device * pdev)
 {
 	int ret=0, i =0;
@@ -250,6 +305,11 @@ static int emkit_info_probe(struct platform_device * pdev)
     }
 
 	board_check_cpu();
+
+    if(board_check_hw_version(pdev)) {
+       EMLOG("board_check_hw_version failed!");
+    }
+
     EMLOG("DONE");
 	return 0;
 
