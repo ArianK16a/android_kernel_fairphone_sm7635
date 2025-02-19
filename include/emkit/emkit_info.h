@@ -55,7 +55,7 @@ enum {
     MODULE_PHONE,
     MODULE_GPS,
     MODULE_MEMORY,
-	MODULE_MEMORY_VENDOR,
+    MODULE_MEMORY_VENDOR,
     MODULE_CAMERA_B,
     MODULE_SCANNER,
     MODULE_NFC,
@@ -76,6 +76,7 @@ enum {
     MODULE_ICCR,
     MODULE_BEACON,
     MODULE_BATTERY_ID,
+    MODULE_HALL,
     MODULE_MAX
 };
 #define MODULE_COUNT MODULE_MAX
@@ -109,6 +110,7 @@ inline static char const *GetModuleTypeName(int kind)
         case MODULE_FISCAL:         return "fiscal";
         case MODULE_FINGERPRINT:    return "fingerprint";
         case MODULE_ICCR:           return "iccr";
+        case MODULE_HALL:           return "hall";
         case MODULE_BEACON:            return "beacon";
         default: return DEF_UNKNOWN;
     }

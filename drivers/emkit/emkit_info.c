@@ -186,6 +186,7 @@ INFO_FUNC(g_emkit_info.board_module_name[MODULE_LIGHT], light);
 INFO_FUNC(g_emkit_info.board_module_name[MODULE_MAGNETIC], magnetic);
 INFO_FUNC(g_emkit_info.board_module_name[MODULE_PROXIMITY], proximity);
 INFO_FUNC(g_emkit_info.board_module_name[MODULE_PRESSURE], pressure);
+INFO_FUNC(g_emkit_info.board_module_name[MODULE_HALL], hall);
 INFO_FUNC(g_emkit_info.board_module_name[MODULE_MEMORY_VENDOR], emkit_memory_vendor);
 
 /*Add by T2M-mingwu.zhang for FP5-538 remarks: TP/LCD Device Information Development.[Begin]*/	
@@ -208,6 +209,7 @@ static struct kobj_attribute emkit_attrs[] = {
     __ATTR(magnetic, S_IRUGO|S_IWUSR|S_IWGRP, magnetic_show, magnetic_store),
     __ATTR(proximity, S_IRUGO|S_IWUSR|S_IWGRP, proximity_show, proximity_store), 
     __ATTR(pressure, S_IRUGO|S_IWUSR|S_IWGRP, pressure_show, pressure_store), 
+    __ATTR(hall, S_IRUGO|S_IWUSR|S_IWGRP, hall_show, hall_store), 
 
 /*Add by T2M-mingwu.zhang for FP5-538 remarks: TP/LCD Device Information Development.[Begin]*/
     __ATTR(display, S_IRUGO|S_IWUSR|S_IWGRP, display_show, display_store),
