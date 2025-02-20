@@ -359,6 +359,9 @@ static const char * const qc_power_supply_wls_type_text[] = {
 	"Unknown", "BPP", "EPP", "HPP"
 };
 
+/*FPS-184 ,set usb online to false when lpd is ture*/
+static int moisture_detected = 0;
+
 static RAW_NOTIFIER_HEAD(hboost_notifier);
 
 int register_hboost_event_notifier(struct notifier_block *nb)
@@ -1160,8 +1163,16 @@ static int usb_psy_get_prop(struct power_supply *psy,
 	if (prop == POWER_SUPPLY_PROP_TEMP)
 		pval->intval = DIV_ROUND_CLOSEST((int)pval->intval, 10);
 
+/*FPS-184 ,set usb online to false when lpd is ture ,begin */
+
+	if ((prop == POWER_SUPPLY_PROP_ONLINE) && (1 == moisture_detected)){
+		pval->intval = 0;
+		pr_err("usb_psy_get_prop,set online = 0 when moisture_detected ! \n");
+	}
+
 	return 0;
 }
+/*FPS-184 ,set usb online to false when lpd is ture ,end */
 
 static int usb_psy_set_prop(struct power_supply *psy,
 		enum power_supply_property prop,
@@ -2241,8 +2252,31 @@ static ssize_t moisture_detection_usb_2_en_store(struct class *c,
 }
 
 QTI_CHARGER_RW_SHOW(moisture_detection_usb_2_en, PSY_TYPE_USB_2, USB_MOISTURE_DET_EN);
+/*FPS-184 ,set usb online to false when lpd is ture ,begin */
+#if 0
+//QTI_CHARGER_RO_SHOW(moisture_detection_status, PSY_TYPE_USB, USB_MOISTURE_DET_STS);
+#else
+static ssize_t moisture_detection_status_show(struct class *c,
+					struct class_attribute *attr, char *buf)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_USB];
+	int rc;
 
-QTI_CHARGER_RO_SHOW(moisture_detection_status, PSY_TYPE_USB, USB_MOISTURE_DET_STS);
+	rc = read_property_id(bcdev, pst, USB_MOISTURE_DET_STS);
+	if (rc < 0)
+		return rc;
+
+	moisture_detected = pst->prop[USB_MOISTURE_DET_STS];
+	//pr_err("moisture_detection_status_show,moisture_detected=%d \n",moisture_detected);
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n", pst->prop[USB_MOISTURE_DET_STS]);
+}
+static CLASS_ATTR_RO(moisture_detection_status);
+
+#endif
+/*FPS-184 ,set usb online to false when lpd is ture ,end */
 
 QTI_CHARGER_RO_SHOW(moisture_detection_usb_2_status, PSY_TYPE_USB_2, USB_MOISTURE_DET_STS);
 
