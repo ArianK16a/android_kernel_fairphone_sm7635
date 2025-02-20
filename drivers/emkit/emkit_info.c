@@ -245,7 +245,7 @@ static int board_check_hw_version(struct platform_device * pdev)
         return ret;
     }
     if (hw_sku == 600) {
-        strcpy(board_version, "UNKNOWN");
+        strcpy(board_version, "600");
     } else if (hw_sku == 601) {
         strcpy(board_version, "EVT1");
     } else if (hw_sku == 602) {
@@ -262,6 +262,9 @@ static int board_check_hw_version(struct platform_device * pdev)
         strcpy(board_version, "PVT");
     } else if (hw_sku == 608) {
         strcpy(board_version, "MP");
+    } else {
+        strcpy(board_version, "UNKNOWN");
+        EMLOG("%s: unknown hw_sku = %d\n", __func__, hw_sku);
     }
     g_sysinfo_kobj = kobject_create_and_add("info", NULL) ;
     if (g_sysinfo_kobj == NULL) {
