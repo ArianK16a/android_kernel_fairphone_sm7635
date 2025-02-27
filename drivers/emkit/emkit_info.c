@@ -308,6 +308,7 @@ static int emkit_info_probe(struct platform_device * pdev)
     }
 
 	board_check_cpu();
+    sprintf(g_emkit_info.board_module_name[MODULE_BATTERY_ID], "%s", "100000");
 
     if(board_check_hw_version(pdev)) {
        EMLOG("board_check_hw_version failed!");
