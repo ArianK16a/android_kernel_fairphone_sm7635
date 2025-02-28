@@ -2424,7 +2424,7 @@ struct snd_soc_dai *snd_soc_register_dai(struct snd_soc_component *component,
 	struct device *dev = component->dev;
 	struct snd_soc_dai *dai;
 
-	dev_err(dev, "msm-kernel ASoC: dynamically register DAI %s\n", dev_name(dev));
+	dev_dbg(dev, "ASoC: dynamically register DAI %s\n", dev_name(dev));
 
 	lockdep_assert_held(&client_mutex);
 
@@ -2461,7 +2461,7 @@ struct snd_soc_dai *snd_soc_register_dai(struct snd_soc_component *component,
 	list_add_tail(&dai->list, &component->dai_list);
 	component->num_dai++;
 
-	dev_err(dev, "ASoC: Registered DAI '%s'\n", dai->name);
+	dev_dbg(dev, "ASoC: Registered DAI '%s'\n", dai->name);
 	return dai;
 }
 EXPORT_SYMBOL_GPL(snd_soc_register_dai);
