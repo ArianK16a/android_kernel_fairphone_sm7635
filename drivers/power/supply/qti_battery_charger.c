@@ -24,6 +24,9 @@
 #include <linux/soc/qcom/battery_charger.h>
 #include <linux/soc/qcom/panel_event_notifier.h>
 
+/* FPS-1034 */
+#define CHARGE_MODE_FCC_SUPPORT
+
 #define MSG_OWNER_BC			32778
 #define MSG_TYPE_REQ_RESP		1
 #define MSG_TYPE_NOTIFY			2
@@ -107,6 +110,9 @@ enum battery_property_id {
 	BATT_CHG_CTRL_START_THR,
 	BATT_CHG_CTRL_END_THR,
 	BATT_CURR_AVG,
+	#ifdef CHARGE_MODE_FCC_SUPPORT /* FPS-1034 */
+	BATT_CHGMODE_FCC,
+	#endif
 	BATT_PROP_MAX,
 };
 
@@ -2115,6 +2121,57 @@ static ssize_t typec_cc_orientation_show(struct class *c, struct class_attribute
 static CLASS_ATTR_RO(typec_cc_orientation);
 
 
+/* FPS-1034 */
+#ifdef CHARGE_MODE_FCC_SUPPORT
+
+#define SLOW_MODE_FCC 1000000 // 1A
+#define NORMAL_MODE_FCC 6000000 // 6A
+
+static ssize_t chgmod_fcc_store(struct class *c, struct class_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
+	int val, rc;
+	u32 fcc_ua = NORMAL_MODE_FCC;
+
+	if (kstrtoint(buf, 0, &val))
+		return -EINVAL;
+
+	#if 1 //need add check val later
+	if(val > 0)
+		fcc_ua = val ;
+	#else
+		fcc_ua = ((val == SLOW_MODE_FCC) ? SLOW_MODE_FCC : NORMAL_MODE_FCC);
+	#endif
+
+	pr_err("charge_mode_current_store: val=%d,fcc_ua=%d \n", val,fcc_ua);
+
+	rc = write_property_id(bcdev, pst, BATT_CHGMODE_FCC, fcc_ua);
+	if (rc < 0)
+		return rc;
+	return count;
+}
+
+static ssize_t chgmod_fcc_show(struct class *c, struct class_attribute *attr,
+				char *buf)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
+	int rc;
+
+	rc = read_property_id(bcdev, pst, BATT_CHGMODE_FCC);
+	if (rc < 0)
+		return rc;
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n", pst->prop[BATT_CHGMODE_FCC]);
+}
+static CLASS_ATTR_RW(chgmod_fcc);
+
+#endif
+
 
 QTI_CHARGER_RO_SHOW(usb_typec_compliant, PSY_TYPE_USB, USB_TYPEC_COMPLIANT);
 
@@ -2328,6 +2385,7 @@ static struct attribute *battery_class_attrs[] = {
 	&class_attr_charge_control_en.attr,
 	&class_attr_suspend_input_current.attr,
 	&class_attr_typec_cc_orientation.attr,
+	&class_attr_chgmod_fcc.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(battery_class);
