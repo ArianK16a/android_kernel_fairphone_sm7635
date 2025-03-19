@@ -30,6 +30,10 @@
 #include <linux/spinlock.h>
 #include <dt-bindings/input/gpio-keys.h>
 
+static ssize_t switch_state_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
+
+
 struct gpio_button_data {
 	const struct gpio_keys_button *button;
 	struct input_dev *input;
@@ -320,7 +324,7 @@ ATTR_SHOW_FN(disabled_switches, EV_SW, true);
  */
 static DEVICE_ATTR(keys, S_IRUGO, gpio_keys_show_keys, NULL);
 static DEVICE_ATTR(switches, S_IRUGO, gpio_keys_show_switches, NULL);
-
+static DEVICE_ATTR(switch_state,S_IRUGO,switch_state_show,NULL);
 #define ATTR_STORE_FN(name, type)					\
 static ssize_t gpio_keys_store_##name(struct device *dev,		\
 				      struct device_attribute *attr,	\
@@ -359,9 +363,32 @@ static struct attribute *gpio_keys_attrs[] = {
 	&dev_attr_switches.attr,
 	&dev_attr_disabled_keys.attr,
 	&dev_attr_disabled_switches.attr,
+	&dev_attr_switch_state.attr,
 	NULL,
 };
+
 ATTRIBUTE_GROUPS(gpio_keys);
+
+static ssize_t switch_state_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct gpio_keys_drvdata *ddata = platform_get_drvdata(pdev);
+	int state, len = 0;
+
+	for (int i = 0; i < ddata->pdata->nbuttons; i++) {
+		struct gpio_button_data *bdata = &ddata->data[i];
+		const struct gpio_keys_button *button = bdata->button;
+
+		if (button->type != EV_SW)
+			continue;
+
+		state = gpiod_get_raw_value_cansleep(bdata->gpiod);
+		len += scnprintf(buf + len, PAGE_SIZE - len,"%d\n", state);
+	}
+
+	return len;
+}
 
 static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 {
