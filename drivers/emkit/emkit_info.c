@@ -19,7 +19,7 @@
 #include <linux/file.h>
 #include <linux/workqueue.h>
 //#include <linux/sysfs.h>
-
+#include <linux/gpio.h>
 
 #include <emkit/emkit_info.h>
 
@@ -28,6 +28,12 @@ EXPORT_SYMBOL_GPL(g_emkit_kobj);
 struct kobject *g_sysinfo_kobj;
 static int hw_sku = 0;
 char board_version[10] = "";
+//[FPS-38] : [FPS][FP-Spring]NPI_DOWN driver begin
+static int npi_down_gpio;
+static int npi_down_gpio_en;
+static ssize_t npi_down_show(struct kobject *kobj,
+                            struct kobj_attribute *attr, char *buf);
+//[FPS-38] end
 
 struct emkit_info_data g_emkit_info = {
     .kobj = NULL,
@@ -233,7 +239,29 @@ static ssize_t sysfs_hw_version_show(struct kobject *kobj,
 static struct kobj_attribute sysfs_attrs[] = {
 	__ATTR(hw_version, S_IWUSR | S_IWGRP | S_IRUSR | S_IRGRP,
 			 sysfs_hw_version_show, NULL),
+	__ATTR(npi_down, S_IRUGO, npi_down_show, NULL),
 };
+
+//[FPS-38] : [FPS][FP-Spring]NPI_DOWN driver begin
+
+static ssize_t npi_down_show(struct kobject *kobj,
+                            struct kobj_attribute *attr, char *buf)
+{
+	int val;
+	if(gpio_is_valid(npi_down_gpio)&&gpio_is_valid(npi_down_gpio_en)) {
+		gpio_set_value(npi_down_gpio_en, 1);
+		udelay(10);
+		val = gpio_get_value(npi_down_gpio);
+		gpio_set_value(npi_down_gpio_en, 0);
+		return scnprintf(buf, PAGE_SIZE, "%d\n", val);
+	}
+	else {
+		pr_err("GPIOs not acquired!\n");
+		return -EINVAL;
+	}
+}
+//[FPS-38] end
+
 
 static int board_check_hw_version(struct platform_device * pdev)
 {
@@ -281,16 +309,20 @@ static int board_check_hw_version(struct platform_device * pdev)
     return 0;
 }
 
+
+//[FPS-38] : [FPS][FP-Spring]NPI_DOWN driver begin
+
+
 static int emkit_info_probe(struct platform_device * pdev)
 {
 	int ret=0, i =0;
 	EMLOG("BEGIN");
+
 	g_emkit_kobj = kobject_create_and_add("emkit", NULL);
 	if (g_emkit_kobj == NULL) {
 		EMLOG("kobject_create_and_add() failed!");
 		return -ENOMEM;
 	}
-
 
 	g_emkit_info.kobj = kobject_create_and_add("info", g_emkit_kobj);
 	if (g_emkit_info.kobj == NULL) {
@@ -298,29 +330,58 @@ static int emkit_info_probe(struct platform_device * pdev)
 		return -ENOMEM;
 	}
 
-	 for (i = 0; i < EMKIT_ATTRS_NUM; i++) {
-        ret = sysfs_create_file(g_emkit_info.kobj, &emkit_attrs[i].attr);
-        if (ret){
-			
-            EMLOG("sysfs_create_group() failed! (ret=%d)", ret);
+	npi_down_gpio=of_get_named_gpio(pdev->dev.of_node,
+			"qcom,npi-down-gpio", 0);
+	npi_down_gpio_en=of_get_named_gpio(pdev->dev.of_node,
+			"qcom,npi-down-en-pin", 0);
+
+	ret = gpio_request(npi_down_gpio, "npi down status");
+	if (ret) {
+		pr_err("npi down status request gpio=%d failed, rc=%d\n", npi_down_gpio,ret);
+	}
+	else {
+		ret = gpio_direction_input(npi_down_gpio);
+		if (ret) {
+			pr_err("set_direction for gpio=%d failed, rc=%d\n",npi_down_gpio,ret);
+		}
+	}
+
+	ret = gpio_request(npi_down_gpio_en, "npi down en status");
+	if (ret) {
+		pr_err("npi down status request gpio=%d failed, rc=%d\n", npi_down_gpio_en,ret);
+	}
+	else {
+		ret = gpio_direction_output(npi_down_gpio_en,0);
+		if (ret) {
+			pr_err("set_direction for gpio=%d failed, rc=%d\n",npi_down_gpio_en,ret);
+		}
+	}
+
+	for (i = 0; i < EMKIT_ATTRS_NUM; i++) {
+		ret = sysfs_create_file(g_emkit_info.kobj, &emkit_attrs[i].attr);
+		if (ret){
+			EMLOG("sysfs_create_group() failed! (ret=%d)", ret);
 			goto err_create_sysfs;
-        }
-    }
+		}
+	}
 
 	board_check_cpu();
-    sprintf(g_emkit_info.board_module_name[MODULE_BATTERY_ID], "%s", "100000");
+	sprintf(g_emkit_info.board_module_name[MODULE_BATTERY_ID], "%s", "100000");
 
-    if(board_check_hw_version(pdev)) {
-       EMLOG("board_check_hw_version failed!");
-    }
+	if(board_check_hw_version(pdev)) {
+		EMLOG("board_check_hw_version failed!");
+	}
 
-    EMLOG("DONE");
+	EMLOG("DONE");
 	return 0;
 
 err_create_sysfs:
 	kobject_put(g_emkit_info.kobj);
 	return ret;
 }
+
+//[FPS-38] end
+
 
 static int emkit_info_remove(struct platform_device *pdev)
 {
