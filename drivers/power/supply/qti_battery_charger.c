@@ -113,6 +113,7 @@ enum battery_property_id {
 	#ifdef CHARGE_MODE_FCC_SUPPORT /* FPS-1034 */
 	BATT_CHGMODE_FCC,
 	#endif
+	BATT_CHG_DISABLE_CHARGING,  //add for disable charging by MINI //FPS-1952
 	BATT_PROP_MAX,
 };
 
@@ -2172,6 +2173,48 @@ static CLASS_ATTR_RW(chgmod_fcc);
 
 #endif
 
+/* FPS-1952 */
+static ssize_t charge_disable_store(struct class *c, struct class_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
+	int val, rc;
+	u32 chg_dis = 0;
+
+	if (kstrtoint(buf, 0, &val))
+		return -EINVAL;
+
+	if(val == 1)
+		chg_dis = 1 ;
+	else
+		chg_dis = 0 ;
+
+	pr_err("charge_disable_store: val=%d,chg_dis=%d \n", val,chg_dis);
+
+	rc = write_property_id(bcdev, pst, BATT_CHG_DISABLE_CHARGING, chg_dis);
+	if (rc < 0)
+		return rc;
+	return count;
+}
+
+static ssize_t charge_disable_show(struct class *c, struct class_attribute *attr,
+				char *buf)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
+	int rc;
+
+	rc = read_property_id(bcdev, pst, BATT_CHG_DISABLE_CHARGING);
+	if (rc < 0)
+		return rc;
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n", pst->prop[BATT_CHG_DISABLE_CHARGING]);
+}
+static CLASS_ATTR_RW(charge_disable);
+
 
 QTI_CHARGER_RO_SHOW(usb_typec_compliant, PSY_TYPE_USB, USB_TYPEC_COMPLIANT);
 
@@ -2386,6 +2429,7 @@ static struct attribute *battery_class_attrs[] = {
 	&class_attr_suspend_input_current.attr,
 	&class_attr_typec_cc_orientation.attr,
 	&class_attr_chgmod_fcc.attr,
+	&class_attr_charge_disable.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(battery_class);
