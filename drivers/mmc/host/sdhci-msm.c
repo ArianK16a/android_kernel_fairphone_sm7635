@@ -3,7 +3,7 @@
  * drivers/mmc/host/sdhci-msm.c - Qualcomm SDHCI Platform driver
  *
  * Copyright (c) 2013-2014,2020. The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024, 2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -3441,8 +3441,7 @@ static int __sdhci_msm_check_write(struct sdhci_host *host, u16 val, int reg)
 		if (!msm_host->use_cdr)
 			break;
 		if ((msm_host->transfer_mode & SDHCI_TRNS_READ) &&
-		    SDHCI_GET_CMD(val) != MMC_SEND_TUNING_BLOCK_HS200 &&
-		    SDHCI_GET_CMD(val) != MMC_SEND_TUNING_BLOCK)
+		    !mmc_op_tuning(SDHCI_GET_CMD(val)))
 			sdhci_msm_set_cdr(host, true);
 		else
 			sdhci_msm_set_cdr(host, false);
@@ -5767,11 +5766,12 @@ static __maybe_unused int sdhci_msm_runtime_resume(struct device *dev)
 	}
 
 	if (!qos_req)
-		return 0;
+		goto skip_qos;
 
 	sdhci_msm_vote_pmqos(msm_host->mmc,
 			msm_host->sdhci_qos->active_mask);
 
+skip_qos:
 	ret = sdhci_msm_ice_resume(msm_host);
 	if (ret)
 		return ret;
