@@ -109,5 +109,6 @@ sdhci-msm.ko
 cqhci.ko
 crm.ko
 bcl_pmic5.ko
+qcom-dload-mode.ko
 haptic.ko
 emkit_info.ko
