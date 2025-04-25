@@ -23,6 +23,9 @@
 
 #include <emkit/emkit_info.h>
 
+#define GPIO_BASE 344
+#define GPIO_SWITCH (GPIO_BASE+107)//gpio107
+
 struct kobject *g_emkit_kobj;
 EXPORT_SYMBOL_GPL(g_emkit_kobj);
 struct kobject *g_sysinfo_kobj;
@@ -34,6 +37,8 @@ static int npi_down_gpio_en;
 static ssize_t npi_down_show(struct kobject *kobj,
                             struct kobj_attribute *attr, char *buf);
 //[FPS-38] end
+
+static ssize_t switch_state_show(struct kobject *kobj,struct kobj_attribute *attr, char *buf);
 
 struct emkit_info_data g_emkit_info = {
     .kobj = NULL,
@@ -226,6 +231,10 @@ static struct kobj_attribute emkit_attrs[] = {
 /*Add by T2M-xianzhu.zhang for FP5-569 : get battery id value. [Begin]*/
     __ATTR(battery_id, S_IRUGO|S_IWUSR|S_IWGRP, battery_id_show, battery_id_store), 
 /*Add by T2M-xianzhu.zhang [End]*/
+
+/*Add by T2M-lin.jiang for FPS-924:Need a node to get the switch key state [Begin]*/
+	__ATTR(switch_state,S_IRUGO,switch_state_show,NULL),
+/*Add by T2M-lin.jiang [End]*/
 };
 
 #define EMKIT_ATTRS_NUM (sizeof(emkit_attrs) / sizeof(emkit_attrs[0]))
@@ -262,6 +271,23 @@ static ssize_t npi_down_show(struct kobject *kobj,
 }
 //[FPS-38] end
 
+//[FPS-924]:[FPS][Switch Key]Need a node to get the switch key state begin
+/*Due to the fact that the open light gpio is applied for
+in gpio-keys. c to prevent conflicts,
+gpio451 (GPIO-BASE+107) can be directly read here.*/
+static ssize_t switch_state_show(struct kobject *kobj,struct kobj_attribute *attr, char *buf)
+{
+	int value;
+	if(gpio_is_valid(GPIO_SWITCH)){
+		value = gpio_get_value(GPIO_SWITCH);
+		return scnprintf(buf, PAGE_SIZE, "%d\n", value);
+	}
+	else{
+		pr_err("GPIO is invalid!\n");
+		return -EINVAL;
+	}
+}
+//[FPS-924] end
 
 static int board_check_hw_version(struct platform_device * pdev)
 {
