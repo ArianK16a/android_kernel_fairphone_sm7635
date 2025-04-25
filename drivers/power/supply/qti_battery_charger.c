@@ -113,6 +113,7 @@ enum battery_property_id {
 	#ifdef CHARGE_MODE_FCC_SUPPORT /* FPS-1034 */
 	BATT_CHGMODE_FCC,
 	#endif
+	BATT_DISPLAY_FCC,//FPS-2299
 	BATT_CHG_DISABLE_CHARGING,  //add for disable charging by MINI //FPS-1952
 	BATT_PROP_MAX,
 };
@@ -2173,6 +2174,58 @@ static CLASS_ATTR_RW(chgmod_fcc);
 
 #endif
 
+
+
+//FPS-2299
+#define DISPLAY_ON_FCC 4000000 // 4A
+#define DISPLAY_OFF_FCC 6000000 // 6A
+
+static ssize_t display_fcc_store(struct class *c, struct class_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
+	int val, rc;
+	u32 fcc_ua = DISPLAY_OFF_FCC;
+
+	if (kstrtoint(buf, 0, &val))
+		return -EINVAL;
+
+	#if 1 //set by framework
+	if(val > 0)
+		fcc_ua = val ;
+	#else
+		fcc_ua = ((val == DISPLAY_OFF_FCC) ? DISPLAY_OFF_FCC : DISPLAY_ON_FCC);
+	#endif
+
+	pr_err("display_fcc_store: val=%d,fcc_ua=%d \n", val,fcc_ua);
+
+	rc = write_property_id(bcdev, pst, BATT_DISPLAY_FCC, fcc_ua);
+	if (rc < 0)
+		return rc;
+	return count;
+}
+
+static ssize_t display_fcc_show(struct class *c, struct class_attribute *attr,
+				char *buf)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
+	int rc;
+
+	rc = read_property_id(bcdev, pst, BATT_DISPLAY_FCC);
+	if (rc < 0)
+		return rc;
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n", pst->prop[BATT_DISPLAY_FCC]);
+}
+static CLASS_ATTR_RW(display_fcc);
+
+
+
+
 /* FPS-1952 */
 static ssize_t charge_disable_store(struct class *c, struct class_attribute *attr,
 				const char *buf, size_t count)
@@ -2429,6 +2482,7 @@ static struct attribute *battery_class_attrs[] = {
 	&class_attr_suspend_input_current.attr,
 	&class_attr_typec_cc_orientation.attr,
 	&class_attr_chgmod_fcc.attr,
+	&class_attr_display_fcc.attr,//FPS-2299
 	&class_attr_charge_disable.attr,
 	NULL,
 };
