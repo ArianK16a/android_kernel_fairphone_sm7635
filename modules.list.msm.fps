@@ -112,3 +112,4 @@ bcl_pmic5.ko
 qcom-dload-mode.ko
 haptic.ko
 emkit_info.ko
+hall_det.ko

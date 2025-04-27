@@ -1,0 +1,11 @@
+#
+# hall sensor Driver
+#
+config HALL_DET
+	tristate "hall sensor driver"
+	depends on INPUT
+	help
+	  Say Y here if you have hall sensor chip in your system.
+	  If unsure, say N.
+	  To compile this driver as a module, choose M here: the
+	  module will be called hall_det.
