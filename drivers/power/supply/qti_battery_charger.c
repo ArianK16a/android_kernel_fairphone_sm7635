@@ -370,6 +370,10 @@ static const char * const qc_power_supply_wls_type_text[] = {
 /*FPS-184 ,set usb online to false when lpd is ture*/
 static int moisture_detected = 0;
 
+
+static u32 chg_dis_global = 0;
+
+
 static RAW_NOTIFIER_HEAD(hboost_notifier);
 
 int register_hboost_event_notifier(struct notifier_block *nb)
@@ -1173,9 +1177,9 @@ static int usb_psy_get_prop(struct power_supply *psy,
 
 /*FPS-184 ,set usb online to false when lpd is ture ,begin */
 
-	if ((prop == POWER_SUPPLY_PROP_ONLINE) && (1 == moisture_detected)){
+	if ((prop == POWER_SUPPLY_PROP_ONLINE) && ((1 == moisture_detected)||(1 == chg_dis_global))){
 		pval->intval = 0;
-		pr_err("usb_psy_get_prop,set online = 0 when moisture_detected ! \n");
+		//pr_info("usb_psy_get_prop,set online = 0 when moisture_detected=%d,chg_dis_global=%d ! \n",moisture_detected,chg_dis_global);
 	}
 
 	return 0;
@@ -2082,7 +2086,7 @@ static ssize_t suspend_input_current_store(struct class *c, struct class_attribu
 	if (kstrtoint(buf, 0, &val))
 		return -EINVAL;
 
-	pr_debug("suspend input current %d\n", val);
+	pr_info("suspend input current %d\n", val);
 
 	rc = write_property_id(bcdev, pst, USB_SUSPEND_INPUT_CURRENT, val);
 	if (rc < 0)
@@ -2249,6 +2253,9 @@ static ssize_t charge_disable_store(struct class *c, struct class_attribute *att
 	rc = write_property_id(bcdev, pst, BATT_CHG_DISABLE_CHARGING, chg_dis);
 	if (rc < 0)
 		return rc;
+
+	chg_dis_global = chg_dis ;
+
 	return count;
 }
 
