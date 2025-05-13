@@ -1994,7 +1994,7 @@ static CLASS_ATTR_RO(usb_typec_compliant);
 #ifdef CHARGE_MODE_FCC_SUPPORT
 
 #define SLOW_MODE_FCC 1000000 // 1A
-#define NORMAL_MODE_FCC 6000000 // 6A
+#define NORMAL_MODE_FCC 5800000 // 5.8A
 
 static ssize_t chgmod_fcc_store(struct class *c, struct class_attribute *attr,
 				const char *buf, size_t count)
@@ -2008,7 +2008,7 @@ static ssize_t chgmod_fcc_store(struct class *c, struct class_attribute *attr,
 	if (kstrtoint(buf, 0, &val))
 		return -EINVAL;
 
-	#if 1 //need add check val later
+	#if 0 //need add check val later
 	if(val > 0)
 		fcc_ua = val ;
 	#else
@@ -2173,7 +2173,7 @@ static CLASS_ATTR_RW(charge_disable);
 
 //FPS-2299
 #define DISPLAY_ON_FCC 4000000 // 4A
-#define DISPLAY_OFF_FCC 6000000 // 6A
+#define DISPLAY_OFF_FCC 5800000 // 5.8A
 
 static ssize_t display_fcc_store(struct class *c, struct class_attribute *attr,
 					const char *buf, size_t count)
@@ -2185,7 +2185,7 @@ static ssize_t display_fcc_store(struct class *c, struct class_attribute *attr,
 	if (kstrtoint(buf, 0, &val))
 		return -EINVAL;
 
-	#if 1 //set by framework
+	#if 0 //set by framework
 	if(val > 0)
 		fcc_ua = val ;
 	#else
