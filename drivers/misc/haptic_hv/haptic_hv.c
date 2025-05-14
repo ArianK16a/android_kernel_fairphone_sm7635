@@ -3638,7 +3638,6 @@ static int vibrator_init(struct aw_haptic *aw_haptic)
 	ret = sysfs_create_group(&aw_haptic->vib_dev.dev->kobj, &vibrator_attribute_group);
 	if (ret < 0) {
 		aw_err("error creating sysfs attr files");
-		BUG();
 		return ret;
 	}
 #else
@@ -3662,13 +3661,11 @@ static int vibrator_init(struct aw_haptic *aw_haptic)
 	ret = devm_led_classdev_register(&aw_haptic->i2c->dev, &aw_haptic->vib_dev);
 	if (ret < 0) {
 		aw_err("fail to create led dev");
-		BUG();
 		return ret;
 	}
 	ret = sysfs_create_group(&aw_haptic->vib_dev.dev->kobj, &vibrator_attribute_group);
 	if (ret < 0) {
 		aw_err("error creating sysfs attr files");
-		BUG();
 		return ret;
 	}
 #endif
@@ -3725,17 +3722,12 @@ static int aw_i2c_probe(struct i2c_client *i2c, const struct i2c_device_id *id)
 	pr_err("<%s>%s: enter\n", AW_I2C_NAME, __func__);
 	if (!i2c_check_functionality(i2c->adapter, I2C_FUNC_I2C)) {
 		pr_err("<%s>%s: check_functionality failed\n", AW_I2C_NAME, __func__);
-		BUG();
 		return -EIO;
 	}
-	
-	aw_haptic = devm_kzalloc(&i2c->dev, sizeof(struct aw_haptic), GFP_KERNEL);
-	if (aw_haptic == NULL) {
-		pr_err("<%s>%s: devm_kzalloc failed \n", AW_I2C_NAME, __func__);
-		BUG();
-		return -ENOMEM;
-	}
 
+	aw_haptic = devm_kzalloc(&i2c->dev, sizeof(struct aw_haptic), GFP_KERNEL);
+	if (aw_haptic == NULL)
+		return -ENOMEM;
 
 	aw_haptic->dev = &i2c->dev;
 	aw_haptic->i2c = i2c;
@@ -3744,18 +3736,14 @@ static int aw_i2c_probe(struct i2c_client *i2c, const struct i2c_device_id *id)
 	dev_set_drvdata(&i2c->dev, aw_haptic);
 #ifdef AW_INPUT_FRAMEWORK
 	ret = input_framework_init(aw_haptic);
-	if (ret < 0){
-		aw_err("input_framework_init failed");
-		BUG();
+	if (ret < 0)
 		return ret;
-	}
 #endif
 	/* aw_haptic rst & int */
 	if (np) {
 		ret = parse_dt_gpio(&i2c->dev, aw_haptic, np);
 		if (ret) {
 			aw_err("failed to parse gpio");
-			BUG();
 			return ret;
 		}
 	} else {
@@ -3768,7 +3756,6 @@ static int aw_i2c_probe(struct i2c_client *i2c, const struct i2c_device_id *id)
 					    GPIOF_OUT_INIT_LOW, "aw_rst");
 		if (ret) {
 			aw_err("rst request failed");
-			BUG();
 			return ret;
 		}
 	}
@@ -3798,7 +3785,6 @@ static int aw_i2c_probe(struct i2c_client *i2c, const struct i2c_device_id *id)
 		ret = devm_gpio_request_one(&i2c->dev, aw_haptic->irq_gpio, GPIOF_DIR_IN, "aw_int");
 		if (ret) {
 			aw_err("int request failed");
-			BUG();
 			return ret;
 		}
 	}
@@ -3807,14 +3793,12 @@ static int aw_i2c_probe(struct i2c_client *i2c, const struct i2c_device_id *id)
 	ret = ctrl_init(aw_haptic);
 	if (ret < 0) {
 		aw_err("ctrl_init failed ret=%d", ret);
-		BUG();
 		return ret;
 	}
 
 	ret = aw_haptic->func->check_qualify(aw_haptic);
 	if (ret < 0) {
 		aw_err("qualify check failed ret=%d", ret);
-		BUG();
 		return ret;
 	}
 
@@ -3822,7 +3806,6 @@ static int aw_i2c_probe(struct i2c_client *i2c, const struct i2c_device_id *id)
 	ret = parse_chipid(aw_haptic);
 	if (ret < 0) {
 		aw_err("parse chipid failed ret=%d", ret);
-		BUG();
 		return ret;
 	}
 
@@ -3845,7 +3828,6 @@ static int aw_i2c_probe(struct i2c_client *i2c, const struct i2c_device_id *id)
 	ret = irq_config(&i2c->dev, aw_haptic);
 	if (ret != 0) {
 		aw_err("irq_config failed ret=%d", ret);
-		BUG();
 		return ret;
 	}
 
