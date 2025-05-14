@@ -44,6 +44,9 @@ static bool enable_dump =
 static enum qcom_download_mode current_download_mode = QCOM_DOWNLOAD_NODUMP;
 static enum qcom_download_mode dump_mode = QCOM_DOWNLOAD_FULLDUMP;
 
+static int oem_download_enable = IS_ENABLED(CONFIG_POWER_RESET_QCOM_DOWNLOAD_MODE_DEFAULT);;
+module_param_named(oem_download_enable, oem_download_enable, int, 0664);
+
 static int set_download_mode(enum qcom_download_mode mode)
 {
 	if ((mode & QCOM_DOWNLOAD_MINIDUMP) && !msm_minidump_enabled()) {
@@ -343,6 +346,9 @@ static int qcom_dload_probe(struct platform_device *pdev)
 	}
 
 	poweroff->dload_dest_addr = map_prop_mem("qcom,msm-imem-dload-type");
+	if (oem_download_enable) {
+		enable_dump = 1;
+	}
 	msm_enable_dump_mode(enable_dump);
 	dump_mode = qcom_scm_get_download_mode(&temp, 0) ? dump_mode : temp;
 	pr_info("%s: Current dump mode: 0x%x\n", __func__, dump_mode);
