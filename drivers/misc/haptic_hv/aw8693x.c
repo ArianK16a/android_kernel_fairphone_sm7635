@@ -2015,7 +2015,6 @@ static int aw8693x_creat_node(struct aw_haptic *aw_haptic)
 				 &aw8693x_vibrator_attribute_group);
 	if (ret < 0) {
 		aw_err("error create aw8693x sysfs attr files");
-		BUG();
 		return ret;
 	}
 	return 0;
