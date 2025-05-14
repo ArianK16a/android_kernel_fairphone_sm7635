@@ -375,20 +375,20 @@ struct aw_componet_codec_ops {
 	pr_err("[haptic_hv]<%s>%s: " format "\n", aw_haptic->name,  __func__, ##__VA_ARGS__)
 
 #define aw_info(format, ...) \
-	pr_err("[haptic_hv]<%s>%s: " format "\n", aw_haptic->name,  __func__, ##__VA_ARGS__)
+	pr_info("[haptic_hv]<%s>%s: " format "\n", aw_haptic->name,  __func__, ##__VA_ARGS__)
 
 #define aw_dbg(format, ...) \
-	pr_err("[haptic_hv]<%s>%s: " format "\n", aw_haptic->name, __func__, ##__VA_ARGS__)
+	pr_debug("[haptic_hv]<%s>%s: " format "\n", aw_haptic->name, __func__, ##__VA_ARGS__)
 #else
 
 #define aw_err(format, ...) \
 	pr_err("[%s][%04d]%s: " format "\n", AW_I2C_NAME, __LINE__, __func__, ##__VA_ARGS__)
 
 #define aw_info(format, ...) \
-	pr_err("[%s][%04d]%s: " format "\n", AW_I2C_NAME, __LINE__, __func__, ##__VA_ARGS__)
+	pr_info("[%s][%04d]%s: " format "\n", AW_I2C_NAME, __LINE__, __func__, ##__VA_ARGS__)
 
 #define aw_dbg(format, ...) \
-	pr_err("[%s][%04d]%s: " format "\n", AW_I2C_NAME, __LINE__, __func__, ##__VA_ARGS__)
+	pr_debug("[%s][%04d]%s: " format "\n", AW_I2C_NAME, __LINE__, __func__, ##__VA_ARGS__)
 #endif
 
 /*********************************************************
