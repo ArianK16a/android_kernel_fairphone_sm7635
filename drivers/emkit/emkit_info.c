@@ -26,6 +26,10 @@
 #define GPIO_BASE 344
 #define GPIO_SWITCH (GPIO_BASE+107)//gpio107
 
+//[FPS-2372] Add SIM card holder detect node begin
+#define GPIO_DETECT (GPIO_BASE+65)//gpio65
+//[FPS-2372] Add SIM card holder detect node end
+
 struct kobject *g_emkit_kobj;
 EXPORT_SYMBOL_GPL(g_emkit_kobj);
 struct kobject *g_sysinfo_kobj;
@@ -39,6 +43,10 @@ static ssize_t npi_down_show(struct kobject *kobj,
 //[FPS-38] end
 
 static ssize_t switch_state_show(struct kobject *kobj,struct kobj_attribute *attr, char *buf);
+
+//[FPS-2372] Add SIM card holder detect node begin
+static ssize_t detect_state_show(struct kobject *kobj,struct kobj_attribute *attr, char *buf);
+//[FPS-2372] Add SIM card holder detect node end
 
 struct emkit_info_data g_emkit_info = {
     .kobj = NULL,
@@ -235,6 +243,11 @@ static struct kobj_attribute emkit_attrs[] = {
 /*Add by T2M-lin.jiang for FPS-924:Need a node to get the switch key state [Begin]*/
 	__ATTR(switch_state,S_IRUGO,switch_state_show,NULL),
 /*Add by T2M-lin.jiang [End]*/
+
+//[FPS-2372] Add SIM card holder detect node begin
+	__ATTR(detect_state,S_IRUGO,detect_state_show,NULL),
+//[FPS-2372] Add SIM card holder detect node end
+
 };
 
 #define EMKIT_ATTRS_NUM (sizeof(emkit_attrs) / sizeof(emkit_attrs[0]))
@@ -288,6 +301,21 @@ static ssize_t switch_state_show(struct kobject *kobj,struct kobj_attribute *att
 	}
 }
 //[FPS-924] end
+
+//[FPS-2372] Add SIM card holder detect node begin
+static ssize_t detect_state_show(struct kobject *kobj,struct kobj_attribute *attr, char *buf)
+{
+	int value;
+	if(gpio_is_valid(GPIO_DETECT)){
+		value = gpio_get_value(GPIO_DETECT);
+		return scnprintf(buf, PAGE_SIZE, "%d\n", value);
+	}
+	else{
+		pr_err("GPIO is invalid!\n");
+		return -EINVAL;
+	}
+}
+//[FPS-2372] Add SIM card holder detect node end
 
 static int board_check_hw_version(struct platform_device * pdev)
 {
