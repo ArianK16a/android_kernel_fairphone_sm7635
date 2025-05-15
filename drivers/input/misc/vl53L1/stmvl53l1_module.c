@@ -34,18 +34,6 @@
 #include <linux/kthread.h>
 #include <linux/jhash.h>
 #include <linux/ctype.h>
-#include <linux/proc_fs.h>
-#include <linux/uaccess.h>
-
-
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/fs.h>
-#include <linux/uaccess.h>
-#include <linux/stat.h>
-#include <linux/mm.h>
-
 
 /*
  * API includes
@@ -53,7 +41,6 @@
 
 #include "stmvl53l1.h"
 #include "stmvl53l1-i2c.h"
-#include "stmvl53l1_ipp.h"
 
 #include "stmvl53l1_if.h" /* our device interface to user space */
 #include "stmvl53l1_internal_if.h"
@@ -62,6 +49,13 @@
  * include default tuning file
  */
 #include "stmvl53l1_tunings.h"
+
+/* 
+ * Abnormal stops error code for HAL Layer
+ */
+#define ABNORMAL_STOP_1 1
+#define ABNORMAL_STOP_2 2
+#define ABNORMAL_STOP_3 3
 
 /** @ingroup vl53l1_config
  * @{
@@ -80,8 +74,7 @@
  *
  * Can be change at run time via @ref vl53l1_ioctl or @ref sysfs_attrib
  */
-
-#define STMVL53L1_CFG_TIMING_BUDGET_US	30000//16000
+#define STMVL53L1_CFG_TIMING_BUDGET_US	16000
 
 /** default preset ranging mode */
 #define STMVL53L1_CFG_DEFAULT_MODE VL53L1_PRESETMODE_RANGING
@@ -90,8 +83,7 @@
 #define STMVL53L1_CFG_DEFAULT_DISTANCE_MODE	VL53L1_DISTANCEMODE_LONG
 
 /** default crosstalk enable */
-
-#define STMVL53L1_CFG_DEFAULT_CROSSTALK_ENABLE	1//0
+#define STMVL53L1_CFG_DEFAULT_CROSSTALK_ENABLE	0
 
 /** default output mode */
 #define STMVL53L1_CFG_DEFAULT_OUTPUT_MODE	VL53L1_OUTPUTMODE_NEAREST
@@ -104,7 +96,7 @@
 
 /** default smudge correction enable value */
 #define STMVL53L1_CFG_DEFAULT_SMUDGE_CORRECTION_MODE \
-	VL53L1_SMUDGE_CORRECTION_CONTINUOUS
+	VL53L1_SMUDGE_CORRECTION_NONE
 
 /** @} */ /* ingroup vl53l1_config */
 
@@ -118,12 +110,11 @@
  * @note uses @a vl53l1_dbgmsg for output so make sure to enable debug
  * to get roi dump
  */
-
-#define STMVL53L1_CFG_ROI_DEBUG	1
+#define STMVL53L1_CFG_ROI_DEBUG	0
 
 /** @} */ /* ingroup vl53l1_mod_dbg*/
 
-static inline void st_gettimeofday(struct timeval *tv)
+void st_gettimeofday(struct st_timeval *tv)
 {
 	struct timespec64 now;
 
@@ -136,7 +127,7 @@ static inline void st_gettimeofday(struct timeval *tv)
 
 
 #ifdef DEBUG_TIME_LOG
-struct timeval start_tv, stop_tv;
+struct st_timeval start_tv, stop_tv;
 #endif
 
 /* Set default value to 1 to allow to see module insertion debug messages */
@@ -151,7 +142,7 @@ static int stmvl53l1_release(struct inode *inode, struct file *file);
 static int ctrl_start(struct stmvl53l1_data *data);
 static int ctrl_stop(struct stmvl53l1_data *data);
 
-static bool force_device_on_en_default = false;
+static bool force_device_on_en_default = true;
 
 module_param(force_device_on_en_default, bool, 0444);
 MODULE_PARM_DESC(force_device_on_en_default,
@@ -410,21 +401,12 @@ static int reset_release(struct stmvl53l1_data *data)
 {
 	int rc;
 
-	vl53l1_dbgmsg("turn on vdd\n");
-	rc = stmvl53l1_module_func_tbl.power_up(data->client_object);
-	if (rc) {
-		vl53l1_errmsg("%d,error rc %d\n", __LINE__, rc);
-		return rc;
-	}
-
 	if (!data->reset_state)
 		return 0;
 
 	rc = stmvl53l1_module_func_tbl.reset_release(data->client_object);
-	if (rc) {
+	if (rc)
 		vl53l1_errmsg("reset release fail rc=%d\n", rc);
-		stmvl53l1_module_func_tbl.power_down(data->client_object);
-	}
 	else
 		data->reset_state = 0;
 
@@ -434,9 +416,6 @@ static int reset_release(struct stmvl53l1_data *data)
 static int reset_hold(struct stmvl53l1_data *data)
 {
 	int rc;
-
-	vl53l1_dbgmsg("turn off vdd data reset_state=%d\n", data->reset_state);
-	rc = stmvl53l1_module_func_tbl.power_down(data->client_object);
 
 	if (data->reset_state)
 		return 0;
@@ -451,21 +430,13 @@ static int reset_hold(struct stmvl53l1_data *data)
 	return rc;
 }
 
-#ifdef DEBUG_TIME_LOG
-static void stmvl53l0_DebugTimeGet(struct timeval *ptv)
-{
-	st_gettimeofday(ptv);
-}
-
-#endif
-
 /**
  *
  * @param pstart_tv time val  starting point
  * @param pstop_tv time val  end point
  * @return time dif in usec
  */
-long stmvl53l1_tv_dif(struct timeval *pstart_tv, struct timeval *pstop_tv)
+long stmvl53l1_tv_dif(struct st_timeval *pstart_tv, struct st_timeval *pstop_tv)
 {
 	long total_sec, total_usec;
 
@@ -932,10 +903,6 @@ static int stmvl53l1_stop(struct stmvl53l1_data *data)
 		cancel_delayed_work(&data->dwork);
 	}
 
-#ifndef VL53L1_FULL_KERNEL
-	/* if we are in ipp waiting mode then abort it */
-	stmvl53l1_ipp_stop(data);
-#endif
 	/* wake up all waiters */
 	/* they will receive -ENODEV error */
 	wake_up_data_waiters(data);
@@ -2451,7 +2418,7 @@ done:
  * no lock version of ctrl_stop (mutex shall be held)
  *
  * @warning exist only for use in device exit to ensure "locked and started"
- * may also beuse in soem erro handling when mutex is already locked
+ * may also beuse in some erro handling when mutex is already locked
  * @return 0 on success and was running >0 if already off <0 on error
  */
 static int _ctrl_stop(struct stmvl53l1_data *data)
@@ -2559,6 +2526,24 @@ static int sleep_for_data(struct stmvl53l1_data *data, pid_t pid,
 	return data->enable_sensor ? rc : -ENODEV;
 }
 
+static int sleep_for_data_timeout(struct stmvl53l1_data *data, pid_t pid,
+				struct list_head *head)
+{
+	int rc;
+
+	mutex_unlock(&data->work_mutex);
+	rc = wait_event_interruptible_timeout(data->waiter_for_data,
+				sleep_for_data_condition(data, pid, head), 
+				usecs_to_jiffies(2 * data->timing_budget));
+	if (rc == 0) //condition evaluated to false after timeout elapsed
+		rc = -EAGAIN;
+	else 
+		rc = 0;
+	mutex_lock(&data->work_mutex);
+
+	return data->enable_sensor ? rc : -ENODEV;
+}
+
 static int ctrl_getdata_blocking(struct stmvl53l1_data *data, void __user *p)
 {
 	int rc = 0;
@@ -2632,6 +2617,7 @@ static int ctrl_mz_data_blocking_common(struct stmvl53l1_data *data,
 	void __user *p, bool is_additional)
 {
 	int rc = 0;
+	int rc0;
 	struct stmvl53l1_data_with_additional __user *d = p;
 	pid_t pid = current->pid;
 
@@ -2652,9 +2638,13 @@ static int ctrl_mz_data_blocking_common(struct stmvl53l1_data *data,
 	}
 	/* sleep if data already read */
 	if (!is_new_data_for_me(data, pid, &data->mz_data_reader_list))
-		rc = sleep_for_data(data, pid, &data->mz_data_reader_list);
-	if (rc)
+		rc = sleep_for_data_timeout(data, pid, &data->mz_data_reader_list);
+	if (rc) {
+		kill_mz_data(&data->meas.multi_range_data);
+		rc0 = copy_to_user(&d->data, &data->meas.multi_range_data,
+			sizeof(VL53L1_MultiRangingData_t));
 		goto done;
+	}
 
 	/* unless we got interrupted we return data to user and note read */
 	rc = copy_to_user(&d->data, &data->meas.multi_range_data,
@@ -3067,7 +3057,9 @@ static int ctrl_apply_calibration_data(struct stmvl53l1_data *data, void __user 
 		vl53l1_errmsg("fail to copy calib data");
 		rc = -EFAULT;
 		//goto done;
-	}
+    }else{
+        vl53l1_info("VL53L1:apply cali data to kernel ok");
+    }
 
     //for debug cali data
     #ifdef DUMP_CALI_DATA_ENABLE
@@ -3606,6 +3598,7 @@ static void stmvl53l1_on_newdata_event(struct stmvl53l1_data *data)
 	VL53L1_RangingMeasurementData_t singledata;
 	long ts_msec;
 	int i;
+	struct input_dev *input = data->input_dev_ps;
 
 	st_gettimeofday(&data->meas.comp_tv);
 	ts_msec = stmvl53l1_tv_dif(&data->start_tv, &data->meas.comp_tv)/1000;
@@ -3632,12 +3625,6 @@ static void stmvl53l1_on_newdata_event(struct stmvl53l1_data *data)
 	break;
 	case VL53L1_PRESETMODE_RANGING:
 	case VL53L1_PRESETMODE_MULTIZONES_SCANNING:
-	/* IMPORTANT : during VL53L1_GetMultiRangingData() call
-	 * work_mutex is release during ipp. This is why we use
-	 * tmp_range_data which is not access somewhere else. When we are
-	 * back we then copy tmp_range_data in multi_range_data.
-	 */
-
 		rc = VL53L1_GetMultiRangingData(&data->stdev,
 			&data->meas.tmp_range_data);
 		if (rc)
@@ -3666,6 +3653,8 @@ static void stmvl53l1_on_newdata_event(struct stmvl53l1_data *data)
 		rc = -1;
 		vl53l1_errmsg("unsorted mode %d=>stop\n", data->preset_mode);
 		_ctrl_stop(data);
+		input_report_abs(input, ABS_MISC, ABNORMAL_STOP_2);
+		input_sync(input);
 	}
 	/* check if not stopped yet
 	 * as we may have been unlocked we must re-check
@@ -3685,6 +3674,8 @@ static void stmvl53l1_on_newdata_event(struct stmvl53l1_data *data)
 				data->meas.cnt, data->meas.err_cnt,
 				data->meas.err_tot);
 			_ctrl_stop(data);
+			input_report_abs(input, ABS_MISC, ABNORMAL_STOP_3);
+			input_sync(input);
 		}
 		return;
 	}
@@ -3749,7 +3740,8 @@ static int stmvl53l1_intr_process(struct stmvl53l1_data *data)
 {
 	uint8_t data_rdy;
 	int rc = 0;
-	struct timeval tv_now;
+	struct st_timeval tv_now;
+	struct input_dev *input = data->input_dev_ps;
 
 	if (!data->enable_sensor)
 		goto done;
@@ -3833,6 +3825,8 @@ stop_io:
 	 */
 	vl53l1_errmsg("GetDatardy fail stop\n");
 	_ctrl_stop(data);
+	input_report_abs(input, ABS_MISC, ABNORMAL_STOP_1);
+	input_sync(input);
 	return rc;
 
 }
@@ -3881,6 +3875,7 @@ static void stmvl53l1_input_push_data_singleobject(struct stmvl53l1_data *data)
 		input_report_abs(input, ABS_WHEEL, LimitCheckCurrent);
 	input_report_abs(input, ABS_TILT_Y, meas->EffectiveSpadRtnCount);
 	input_report_abs(input, ABS_TOOL_WIDTH, meas->RangeQualityLevel);
+	input_report_abs(input, ABS_MISC, 0);
 
 	input_sync(input);
 }
@@ -3892,7 +3887,7 @@ static void stmvl53l1_input_push_data_multiobject(struct stmvl53l1_data *data)
 	int rc;
 	VL53L1_TargetRangeData_t *meas_array[4];
 	VL53L1_CalibrationData_t calibration_data;
-	struct timeval tv;
+	struct st_timeval tv;
 	struct input_dev *input = data->input_dev_ps;
 
 	st_gettimeofday(&tv);
@@ -3921,7 +3916,7 @@ static void stmvl53l1_input_push_data_multiobject(struct stmvl53l1_data *data)
 	   ABS_DISTANCE
 	   ABS_THROTTLE
 	   ABS_RUDDER
-	   ABS_MISC
+	   ABS_MISC    0: normal operation, other : i2c I/O failure
 	   ABS_VOLUME
 	 ************************************************************/
 
@@ -4055,6 +4050,8 @@ calibration_data.customer.algo__crosstalk_compensation_plane_offset_kcps);
 			meas_array[1]->SignalRateRtnMegaCps);
 	}
 
+	input_report_abs(input, ABS_MISC, 0);
+
 	input_sync(input);
 
 
@@ -4168,8 +4165,6 @@ int stmvl53l1_intr_handler(struct stmvl53l1_data *data)
 }
 
 
-
-
 /**
  * One time device  setup
  *
@@ -4200,29 +4195,24 @@ int stmvl53l1_setup(struct stmvl53l1_data *data)
 
 	/* init work handler */
 	INIT_DELAYED_WORK(&data->dwork, stmvl53l1_work_handler);
-#ifndef VL53L1_FULL_KERNEL
-	/* init ipp side */
-	stmvl53l1_ipp_setup(data);
-#endif
 	data->force_device_on_en = force_device_on_en_default;
 	data->reset_state = 1;
 	data->is_calibrating = false;
 	data->last_error = VL53L1_ERROR_NONE;
 	data->is_device_remove = false;
 
-	/* vdd will be controlled in reset_release() */
-	//rc = stmvl53l1_module_func_tbl.power_up(data->client_object);
-	//if (rc) {
-	//	vl53l1_errmsg("%d,error rc %d\n", __LINE__, rc);
-	//	goto exit_ipp_cleanup;
-	//}
+	rc = stmvl53l1_module_func_tbl.power_up(data->client_object);
+	if (rc) {
+		vl53l1_errmsg("%d,error rc %d\n", __LINE__, rc);
+		goto exit_func_end;
+	}
 	rc = reset_release(data);
 	if (rc)
-		goto exit_ipp_cleanup;
+		goto exit_func_end;
 
 	rc = stmvl53l1_input_setup(data);
 	if (rc)
-		goto exit_ipp_cleanup;
+		goto exit_func_end;
 
 	/* init blocking ioctl stuff */
 	INIT_LIST_HEAD(&data->simple_data_reader_list);
@@ -4252,6 +4242,7 @@ int stmvl53l1_setup(struct stmvl53l1_data *data)
 		vl53l1_errmsg("%d error:%d\n", __LINE__, rc);
 		goto exit_unregister_dev_ps;
 	}
+
 	data->enable_sensor = 0;
 
 	data->poll_delay_ms = STMVL53L1_CFG_POLL_DELAY_MS;
@@ -4361,10 +4352,8 @@ exit_unregister_dev_ps:
 	sysfs_remove_group(&data->input_dev_ps->dev.kobj,
 		&stmvl53l1_attr_group);
 	input_unregister_device(data->input_dev_ps);
-exit_ipp_cleanup:
-#ifndef VL53L1_FULL_KERNEL
-	stmvl53l1_ipp_cleanup(data);
-#endif
+
+exit_func_end:
 	return rc;
 }
 
@@ -4396,9 +4385,6 @@ void stmvl53l1_cleanup(struct stmvl53l1_data *data)
 		vl53l1_dbgmsg("to unregister misc dev\n");
 		misc_deregister(&data->miscdev);
 	}
-#ifndef VL53L1_FULL_KERNEL
-	stmvl53l1_ipp_cleanup(data);
-#endif
 	/* be sure device is put under reset */
 	data->force_device_on_en = false;
 	reset_hold(data);
@@ -4437,20 +4423,10 @@ static long stmvl53l1_ioctl(struct file *file,
 static int __init stmvl53l1_init(void)
 {
 	int rc = -1;
+
 	vl53l1_dbgmsg("Enter\n");
-#ifndef VL53L1_FULL_KERNEL
-	rc = stmvl53l1_ipp_init();
-	if (rc)
-		goto done;
 	/* i2c/cci client specific init function */
 	rc = stmvl53l1_module_func_tbl.init();
-	if (rc)
-		stmvl53l1_ipp_exit();
-done:
-#else
-	/* i2c/cci client specific init function */
-	rc = stmvl53l1_module_func_tbl.init();
-#endif
 	vl53l1_dbgmsg("End %d\n", rc);
 	return rc;
 }
@@ -4461,9 +4437,6 @@ static void __exit stmvl53l1_exit(void)
 	stmvl53l1_module_func_tbl.deinit(NULL);
 	if (stmvl53l1_module_func_tbl.clean_up != NULL)
 		stmvl53l1_module_func_tbl.clean_up();
-#ifndef VL53L1_FULL_KERNEL
-	stmvl53l1_ipp_exit();
-#endif
 	vl53l1_dbgmsg("End\n");
 }
 
