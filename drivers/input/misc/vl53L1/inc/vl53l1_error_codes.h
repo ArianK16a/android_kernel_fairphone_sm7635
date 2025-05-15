@@ -32,9 +32,9 @@ extern "C" {
  ***************************************
  */
 
-/*
+/**
  * @defgroup VL53L1_define_Error_group Error and Warning code returned by API
- *  The following DEFINE are used to identify the PAL ERROR
+ *  The following DEFINE are used to identify the TOF device ERROR
  *  @{
  */
 
@@ -92,7 +92,7 @@ typedef int8_t VL53L1_Error;
 	/*!<  Zone dynamic config GPH ID check failed - API out of sync */
 
 #define VL53L1_ERROR_XTALK_EXTRACTION_NO_SAMPLE_FAIL   ((VL53L1_Error) - 22)
-	/*!<  Thrown when run_xtalk_extraction fn has 0 succesful samples
+	/*!<  Thrown when run_xtalk_extraction fn has 0 successful samples
 	 * when using the full array to sample the xtalk. In this case there is
 	 * not enough information to generate new Xtalk parm info. The function
 	 * will exit and leave the current xtalk parameters unaltered
@@ -124,7 +124,7 @@ typedef int8_t VL53L1_Error;
 	/*!<  Thrown if the tuning file key table version does not match with
 	 * expected value. The driver expects the key table version to match
 	 * the compiled default version number in the define
-	 * #VL53L1_TUNINGPARM_KEY_TABLE_VERSION_DEFAULT
+	 * VL53L1_TUNINGPARM_KEY_TABLE_VERSION_DEFAULT
 	 */
 
 #define VL53L1_WARNING_REF_SPAD_CHAR_NOT_ENOUGH_SPADS   ((VL53L1_Error) - 28)
@@ -187,7 +187,7 @@ typedef int8_t VL53L1_Error;
 	 * notification only, xtalk pulse and shape have still been generated
 	 */
 #define VL53L1_WARNING_XTALK_NO_SAMPLES_FOR_GRADIENT     ((VL53L1_Error) - 39)
-	/*!< Thrown to notify that some of teh xtalk samples used for gradient
+	/*!< Thrown to notify that some of the xtalk samples used for gradient
 	 * generation did not yield valid ranging pulse data while attempting to
 	 * measure the xtalk signal in vl53l1_run_xtalk_extract(). This can
 	 * signify that any one of the zones 0-3 yielded no successful samples.
