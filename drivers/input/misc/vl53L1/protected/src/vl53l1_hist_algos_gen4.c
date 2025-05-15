@@ -131,12 +131,10 @@ VL53L1_Error VL53L1_f_033(
 
 
 
-	if (ppost_cfg->hist_amb_est_method ==
-		VL53L1_HIST_AMB_EST_METHOD__THRESHOLDED_BINS)
 		VL53L1_hist_estimate_ambient_from_thresholded_bins(
 			(int32_t)ppost_cfg->ambient_thresh_sigma0,
 			&(palgo3->VL53L1_p_010));
-	else
+
 		VL53L1_hist_estimate_ambient_from_ambient_bins(
 				&(palgo3->VL53L1_p_010));
 
@@ -149,7 +147,6 @@ VL53L1_Error VL53L1_f_033(
 				pxtalk,
 				&(palgo3->VL53L1_p_010),
 				&(palgo3->VL53L1_p_038));
-
 
 
 	pdmax_cfg->ambient_thresh_sigma =
@@ -176,7 +173,7 @@ VL53L1_Error VL53L1_f_033(
 		status =
 			VL53L1_f_018(
 			ppost_cfg->ambient_thresh_events_scaler,
-			(int32_t)ppost_cfg->ambient_thresh_sigma1,
+			(int32_t)pdmax_cfg->ambient_thresh_sigma,
 			(int32_t)ppost_cfg->min_ambient_thresh_events,
 			ppost_cfg->algo__crosstalk_compensation_enable,
 			&(palgo3->VL53L1_p_010),

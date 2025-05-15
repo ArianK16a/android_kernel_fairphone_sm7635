@@ -390,7 +390,7 @@ VL53L1_Error VL53L1_poll_for_firmware_ready(
 
 
 
-	VL53L1_GetTickCount(&start_time_ms);
+	VL53L1_GetTickCount(Dev, &start_time_ms);
 	pdev->fw_ready_poll_duration_ms = 0;
 
 
@@ -412,7 +412,7 @@ VL53L1_Error VL53L1_poll_for_firmware_ready(
 		}
 
 
-		VL53L1_GetTickCount(&current_time_ms);
+		VL53L1_GetTickCount(Dev, &current_time_ms);
 		pdev->fw_ready_poll_duration_ms =
 				current_time_ms - start_time_ms;
 	}
