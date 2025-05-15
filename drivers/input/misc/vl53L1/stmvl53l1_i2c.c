@@ -17,14 +17,7 @@
 #include "stmvl53l1-i2c.h"
 #include <linux/i2c.h>
 
-static inline void st_gettimeofday(struct timeval *tv)
-{
-	struct timespec64 now;
-
-	ktime_get_real_ts64(&now);
-	tv->tv_sec = now.tv_sec;
-	tv->tv_usec = now.tv_nsec/1000;
-}
+#define WRITE_MULTIPLE_CHUNK_MAX	32
 
 #if STMVL53L1_LOG_POLL_TIMING
 /**
@@ -50,16 +43,16 @@ static inline void st_gettimeofday(struct timeval *tv)
  * @param tv pointer to start time_val
  * @return time elapsed in  micro seconde
  */
-static uint32_t tv_elapsed_us(struct timeval *tv)
+static uint32_t tv_elapsed_us(struct st_timeval *tv)
 {
-	struct timeval now;
+	struct st_timeval now;
 
 	st_gettimeofday(&now);
 	return (now.tv_sec - tv->tv_sec) * 1000000 + (now.tv_usec -
 			tv->tv_usec);
 }
 
-#	define	cci_access_var struct timeval cci_log_start_tv
+#	define	cci_access_var struct st_timeval cci_log_start_tv
 #	define cci_access_start()\
 	st_gettimeofday(&cci_log_start_tv)
 #	define cci_access_over(fmt, ...) \
@@ -77,8 +70,9 @@ static uint32_t tv_elapsed_us(struct timeval *tv)
 #	define i2c_debug(fmt, ...) (void)0
 #endif
 
-VL53L1_Error VL53L1_GetTickCount(uint32_t *ptime_ms)
+VL53L1_Error VL53L1_GetTickCount(VL53L1_Dev_t *pdev, uint32_t *ptime_ms)
 {
+	(void)pdev;
 	(void)ptime_ms;
 	BUG_ON(1);
 }
@@ -88,9 +82,9 @@ VL53L1_Error VL53L1_GetTickCount(uint32_t *ptime_ms)
  * @param tv pointer to start time_val
  * @return time elapsed in milli seconde
  */
-static uint32_t tv_elapsed_ms(struct timeval *tv)
+static uint32_t tv_elapsed_ms(struct st_timeval *tv)
 {
-	struct timeval now;
+	struct st_timeval now;
 
 	st_gettimeofday(&now);
 	return (now.tv_sec - tv->tv_sec) * 1000 +
@@ -257,13 +251,25 @@ VL53L1_Error VL53L1_WriteMulti(VL53L1_DEV pdev, uint16_t index,
 		uint8_t *pdata, uint32_t count)
 {
 	struct stmvl53l1_data *dev;
+	uint32_t chunk_size = WRITE_MULTIPLE_CHUNK_MAX;
+	VL53L1_Error status;
+	uint32_t i;
+	uint16_t hostaddr = index;
 
 	dev = (struct stmvl53l1_data *)container_of(pdev,
 			struct stmvl53l1_data,
 			stdev);
 
-	return cci_write(dev, index, pdata, count) ?
-		VL53L1_ERROR_CONTROL_INTERFACE : VL53L1_ERROR_NONE;
+	for (i = 0; i < count; i += chunk_size) {
+		status = (cci_write(dev, hostaddr, &pdata[i], 
+			min(chunk_size, (count - i))) ?
+			VL53L1_ERROR_CONTROL_INTERFACE : VL53L1_ERROR_NONE);
+		if (status != VL53L1_ERROR_NONE)
+			break;
+		hostaddr += chunk_size;
+	}
+
+	return status;
 }
 
 VL53L1_Error VL53L1_ReadMulti(VL53L1_DEV pdev, uint16_t index,
@@ -279,7 +285,7 @@ VL53L1_Error VL53L1_ReadMulti(VL53L1_DEV pdev, uint16_t index,
 		VL53L1_ERROR_CONTROL_INTERFACE : VL53L1_ERROR_NONE;
 }
 
-static int is_time_over(struct timeval *tv, uint32_t msec)
+static int is_time_over(struct st_timeval *tv, uint32_t msec)
 {
 	return tv_elapsed_ms(tv) >= msec;
 }
@@ -290,7 +296,7 @@ VL53L1_Error VL53L1_WaitValueMaskEx(VL53L1_DEV pdev,
 		uint8_t value,
 		uint8_t mask, uint32_t poll_delay_ms)
 {
-	struct timeval start_tv;
+	struct st_timeval start_tv;
 	struct stmvl53l1_data *dev;
 	int rc, time_over;
 	uint8_t rd_val;

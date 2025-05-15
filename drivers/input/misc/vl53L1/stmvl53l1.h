@@ -1,33 +1,14 @@
-/**************************************************************************
- * Copyright (c) 2016, STMicroelectronics - All Rights Reserved
 
- License terms: BSD 3-clause "New" or "Revised" License.
+/* SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause */
+/******************************************************************************
+ * Copyright (c) 2020, STMicroelectronics - All Rights Reserved
 
- Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met:
+ This file is part of VL53L1 and is dual licensed,
+ either GPL-2.0+
+ or 'BSD 3-clause "New" or "Revised" License' , at your option.
+ ******************************************************************************
+ */
 
- 1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer.
-
- 2. Redistributions in binary form must reproduce the above copyright notice,
- this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution.
-
- 3. Neither the name of the copyright holder nor the names of its contributors
- may be used to endorse or promote products derived from this software
- without specific prior written permission.
-
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ****************************************************************************/
 /**
  * @file stmvl53l1.h header for vl53l1 sensor driver
  */
@@ -39,28 +20,17 @@
 #include <linux/workqueue.h>
 #include <linux/miscdevice.h>
 #include <linux/wait.h>
-#include <linux/time.h>
 
 #include "vl53l1_api.h"
 
-/**
- * IPP adapt
- */
-#ifdef DEBUG
-#	define IPP_PRINT(...) printk(__VA_ARGS__)
-#else
-#	define IPP_PRINT(...) (void)0
-#endif
+struct st_timeval {
+	time64_t tv_sec; /* seconds */
+	long tv_usec; /* microseconds */
+};
 
-#include "stmvl53l1_ipp.h"
+void st_gettimeofday(struct st_timeval *tv);
+
 #include "stmvl53l1_if.h"
-
-/**
- * Configure the Netlink-id use
- */
-#ifndef STMVL531_CFG_NETLINK_USER
-#define STMVL531_CFG_NETLINK_USER 29
-#endif
 
 #define STMVL53L1_MAX_CCI_XFER_SZ	256
 #define STMVL53L1_DRV_NAME	"stmvl53l1"
@@ -72,7 +42,7 @@
  */
 /* define CFG_STMVL53L1_HAVE_REGULATOR */
 
-#define DRIVER_VERSION		"14.0.6"
+#define DRIVER_VERSION		"14.1.2"
 
 /** @ingroup vl53l1_config
  * @{
@@ -145,50 +115,11 @@ extern int stmvl53l1_enable_debug;
 #include <net/sock.h>
 #include <linux/netlink.h>
 #include <linux/wait.h>
-#include <linux/time.h>
-
-#ifndef VL53L1_FULL_KERNEL
-/** if set to 1 enable ipp execution timing (if debug enabled)
- * @ingroup vl53l1_mod_dbg
- */
-#define IPP_LOG_TIMING	1
-
-struct ipp_data_t {
-	struct ipp_work_t work;
-	struct ipp_work_t work_out;
-	int test_n;
-	/*!< buzy state 0 is idle
-	 *any other value do not try to use (state value defined in source)
-	 */
-	int buzy;
-	int waited_xfer_id;
-	/*!< when buzy is set that is the id we are expecting
-	 * note that value 0 is reserved and stand for "not waiting"
-	 * as such never id 0 will be in any round trip exchange
-	 * it's ok for daemon to use 0 in "ping" when it identify himself
-	 */
-	int status;	/** if that is not 0 do not look at out work data */
-	wait_queue_head_t waitq;
-	/*!< ipp caller are put in that queue wait while job is posted to user
-	 * @warning  ipp and dev mutex will be released before waiting
-	 * see @ref ipp_abort
-	 */
-#if IPP_LOG_TIMING
-	struct timeval start_tv, stop_tv;
-#endif
-};
-#endif
 
 struct stmvl53l1_waiters {
 	struct list_head list;
 	pid_t pid;
 };
-
-struct timeval {
-	long	tv_sec;		/* seconds */
-	long	tv_usec;	/* microseconds */
-};
-
 
 /*
  *  driver data structs
@@ -221,7 +152,7 @@ struct stmvl53l1_data {
 	int poll_mode;	/*!< use poll even if interrupt line present*/
 	int poll_delay_ms;	/*!< rescheduled time use in poll mode  */
 	int enable_sensor;	/*!< actual device enabled state  */
-	struct timeval start_tv;/*!< stream start time */
+	struct st_timeval start_tv;/*!< stream start time */
 	int enable_debug;
 	bool allow_hidden_start_stop; /*!< allow stop/start sequence in bare */
 
@@ -256,8 +187,8 @@ struct stmvl53l1_data {
 		int	poll_cnt;
 		uint32_t	err_cnt; /* on actual measurement */
 		uint32_t	err_tot; /* from start */
-		struct timeval start_tv;
-		struct timeval comp_tv;
+		struct st_timeval start_tv;
+		struct st_timeval comp_tv;
 		VL53L1_RangingMeasurementData_t single_range_data;
 		VL53L1_MultiRangingData_t multi_range_data;
 		VL53L1_MultiRangingData_t tmp_range_data;
@@ -299,34 +230,16 @@ struct stmvl53l1_data {
 	uint32_t auto_pollingTimeInMs;
 	VL53L1_DetectionConfig_t auto_config;
 
-	/* Debug */
-#ifndef VL53L1_FULL_KERNEL
-	struct ipp_data_t ipp;
-#if IPP_LOG_TIMING
-#	define stmvl531_ipp_tim_stop(data)\
-	do_gettimeofday(&data->ipp.stop_tv)
-#	define stmvl531_ipp_tim_start(data)\
-	do_gettimeofday(&data->ipp.start_tv)
-#	define stmvl531_ipp_time(data)\
-	stmvl53l1_tv_dif(&data->ipp.start_tv, &data->ipp.stop_tv)
-#	define stmvl531_ipp_stat(data, fmt, ...)\
-	vl53l1_dbgmsg("IPPSTAT " fmt "\n", ##__VA_ARGS__)
-#else
-#	define stmvl531_ipp_tim_stop(data) (void)0
-#	define stmvl531_ipp_tim_start(data) (void)0
-#	define stmvl531_ipp_stat(...) (void)0
-#endif
-#endif
 };
 
 
 /**
- * timeval diff in us
+ * st_timeval diff in us
  *
  * @param pstart_tv
  * @param pstop_tv
  */
-long stmvl53l1_tv_dif(struct timeval *pstart_tv, struct timeval *pstop_tv);
+long stmvl53l1_tv_dif(struct st_timeval *pstart_tv, struct st_timeval *pstop_tv);
 
 
 /**
@@ -342,60 +255,6 @@ void stmvl53l1_cleanup(struct stmvl53l1_data *data);
 void stmvl53l1_pm_suspend_stop(struct stmvl53l1_data *data);
 #endif
 int stmvl53l1_intr_handler(struct stmvl53l1_data *data);
-
-#ifndef VL53L1_FULL_KERNEL
-/**
- * request ipp to abort or stop
- *
- * require dev work_mutex held
- *
- * @warning because the "waiting" work can't be aborted we must wake it up
- * it will happen and at some later time not earlier than release of lock
- * if after lock release we have a new request to start the race may not be
- * handled correctly
- *
- * @param data the device
- * @return 0 if no ipp got canceled, @warning this is maybe not grant we
- * can't re-sched "dev work"  and re-run the worker back
- */
-int stmvl53l1_ipp_stop(struct stmvl53l1_data *data);
-
-int stmvl53l1_ipp_do(struct stmvl53l1_data *data, struct ipp_work_t *work_in,
-		struct ipp_work_t *work_out);
-
-/**
- * per device netlink init
- * @param data
- * @return
- */
-int stmvl53l1_ipp_setup(struct stmvl53l1_data *data);
-/**
- * per device ipp netlink cleaning
- * @param data
- * @return
- */
-void stmvl53l1_ipp_cleanup(struct stmvl53l1_data *data);
-
-/**
- * Module init for netlink
- * @return 0 on success
- */
-int stmvl53l1_ipp_init(void);
-
-/**
- * Module exit for netlink
- * @return 0 on success
- */
-void stmvl53l1_ipp_exit(void);
-
-/**
- * enable and start ipp exhange
- * @param n_dev number of device to run on
- * @param data  dev struct
- * @return 0 on success
- */
-int stmvl53l1_ipp_enable(int n_dev, struct stmvl53l1_data *data);
-#endif
 
 
 /*
