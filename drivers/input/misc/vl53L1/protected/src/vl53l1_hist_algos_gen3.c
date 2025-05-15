@@ -21,7 +21,6 @@
 
 
 
-
 #include "vl53l1_types.h"
 #include "vl53l1_platform_log.h"
 
@@ -271,6 +270,9 @@ VL53L1_Error VL53L1_f_020(
 				palgo->VL53L1_p_046[j] == 1)
 				palgo->VL53L1_p_051++;
 
+			if (palgo->VL53L1_p_051 > palgo->VL53L1_p_050)
+				palgo->VL53L1_p_051 = palgo->VL53L1_p_050;
+
 			if (palgo->VL53L1_p_046[i] > 0)
 				palgo->VL53L1_p_047[i] = palgo->VL53L1_p_051;
 			else
@@ -278,10 +280,6 @@ VL53L1_Error VL53L1_f_020(
 		}
 
 	}
-
-
-	if (palgo->VL53L1_p_051 > palgo->VL53L1_p_050)
-		palgo->VL53L1_p_051 = palgo->VL53L1_p_050;
 
 	LOG_FUNCTION_END(status);
 
@@ -309,7 +307,12 @@ VL53L1_Error VL53L1_f_021(
 
 	LOG_FUNCTION_START("");
 
-
+   //add by jinghuang for crash
+   if(palgo==NULL){
+       printk("VL53L1_f_021:palgo is null!");
+	   return status;
+   }
+   	  
 
 	max_filter_half_width = palgo->VL53L1_p_031 - 1;
 	max_filter_half_width = max_filter_half_width >> 1;
@@ -323,8 +326,15 @@ VL53L1_Error VL53L1_f_021(
 
 		i =  blb      % palgo->VL53L1_p_031;
 		j = (blb + 1) % palgo->VL53L1_p_031;
-
-
+		//add by jinghuang for crash
+        if(i>=VL53L1_HISTOGRAM_BUFFER_SIZE){
+            i=VL53L1_HISTOGRAM_BUFFER_SIZE-1;
+            printk("VL53L1_f_021:buff i is overflow!");
+        }
+		if(j>=VL53L1_HISTOGRAM_BUFFER_SIZE){
+			j=VL53L1_HISTOGRAM_BUFFER_SIZE-1;
+            printk("VL53L1_f_021:buff j is overflow!");
+        }
 
 		if (i < palgo->VL53L1_p_024 &&
 				j < palgo->VL53L1_p_024) {
@@ -335,9 +345,14 @@ VL53L1_Error VL53L1_f_021(
 					palgo->VL53L1_p_047[j] > 0) {
 
 				pulse_no = palgo->VL53L1_p_047[j] - 1;
-				pdata   = &(palgo->VL53L1_p_002[pulse_no]);
-
+				//add by jinghuang for crash
+				if(pulse_no >=VL53L1_D_001){
+                     printk("VL53L1_f_021:buff j pulse_no is overflow!");
+					 pulse_no=VL53L1_D_001-1;
+				}
+                
 				if (pulse_no < palgo->VL53L1_p_050) {
+					pdata = &(palgo->VL53L1_p_002[pulse_no]);
 					pdata->VL53L1_p_015 = blb;
 					pdata->VL53L1_p_022    = blb + 1;
 					pdata->VL53L1_p_025   = 0xFF;
@@ -352,10 +367,14 @@ VL53L1_Error VL53L1_f_021(
 				&& palgo->VL53L1_p_047[j] == 0) {
 
 				pulse_no = palgo->VL53L1_p_047[i] - 1;
-				pdata   = &(palgo->VL53L1_p_002[pulse_no]);
+				//add by jinghuang for crash
+				if(pulse_no >=VL53L1_D_001){
+                     printk("VL53L1_f_021:buff i pulse_no is overflow!");
+					 pulse_no=VL53L1_D_001-1;
+				}
 
 				if (pulse_no < palgo->VL53L1_p_050) {
-
+					pdata = &(palgo->VL53L1_p_002[pulse_no]);
 					pdata->VL53L1_p_026    = blb;
 					pdata->VL53L1_p_016  = blb + 1;
 
@@ -521,6 +540,9 @@ VL53L1_Error VL53L1_f_027(
 	LOG_FUNCTION_START("");
 
 
+
+	if (pdata->VL53L1_p_025 == 0xFF)
+		pdata->VL53L1_p_025 = 1;
 
 	i = pdata->VL53L1_p_025 % palgo->VL53L1_p_031;
 
@@ -726,7 +748,10 @@ VL53L1_Error VL53L1_f_026(
 	int32_t  cx   = 0;
 
 
-
+	if (VL53L1_p_031 == 0) {
+		*psigma_est = 0xFFFF;
+		return VL53L1_ERROR_DIVISION_BY_ZERO;
+	}
 	i = bin % VL53L1_p_031;
 
 
