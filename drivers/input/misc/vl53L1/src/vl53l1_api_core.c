@@ -71,8 +71,6 @@ static VL53L1_Error select_offset_per_vcsel(VL53L1_LLDriverData_t *pdev,
 		tB = pdev->per_vcsel_cal_data.long_b_offset_mm;
 		break;
 	default:
-		tA = pdev->per_vcsel_cal_data.long_a_offset_mm;
-		tB = pdev->per_vcsel_cal_data.long_b_offset_mm;
 		status = VL53L1_ERROR_INVALID_PARAMS;
 		*poffset = 0;
 		break;
@@ -3678,6 +3676,7 @@ VL53L1_Error VL53L1_get_device_results(
 		(VL53L1DevDataGet(Dev, CurrentParameters.PresetMode) ==
 		 VL53L1_PRESETMODE_RANGING);
 
+
 	if ((pdev->sys_ctrl.system__mode_start &
 		 VL53L1_DEVICESCHEDULERMODE_HISTOGRAM)
 		 == VL53L1_DEVICESCHEDULERMODE_HISTOGRAM) {
@@ -3982,6 +3981,13 @@ UPDATE_DYNAMIC_CONFIG:
 			} else if ((status == VL53L1_ERROR_NONE) &&
 				(pL->low_power_auto_range_count == 1)) {
 				pL->low_power_auto_range_count = 2;
+			}
+
+
+			if ((pL->low_power_auto_range_count != 0xFF) &&
+				(status == VL53L1_ERROR_NONE)) {
+				status = VL53L1_low_power_auto_update_DSS(
+						Dev);
 			}
 		}
 
@@ -6252,10 +6258,6 @@ VL53L1_Error VL53L1_get_tuning_parm(
 		*ptuning_parm_value =
 		pdev->tuning_parms.tp_uwr_lng_corr_z_5_rangeb;
 	break;
-	case VL53L1_TUNINGPARM_MIN_SIGNAL_SECONDARY_TARGETS:
-		*ptuning_parm_value =
-		pdev->tuning_parms.tp_min_signal_secondary_targets;
-	break;
 
 	default:
 		*ptuning_parm_value = 0x7FFFFFFF;
@@ -7056,10 +7058,7 @@ VL53L1_Error VL53L1_set_tuning_parm(
 		pdev->tuning_parms.tp_uwr_lng_corr_z_5_rangeb =
 			(int16_t)tuning_parm_value;
 	break;
-	case VL53L1_TUNINGPARM_MIN_SIGNAL_SECONDARY_TARGETS:
-		pdev->tuning_parms.tp_min_signal_secondary_targets =
-			(uint32_t)tuning_parm_value;
-	break;
+
 
 	default:
 		status = VL53L1_ERROR_INVALID_PARAMS;

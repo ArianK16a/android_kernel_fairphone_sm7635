@@ -15,6 +15,8 @@
 #include "vl53l1_ll_def.h"
 #include "vl53l1_platform_log.h"
 
+#define VL53L1_IPP_API
+#include "vl53l1_platform_ipp_imports.h"
 #include "vl53l1_platform_user_data.h"
 
 #ifdef __cplusplus
@@ -379,7 +381,6 @@ VL53L1_Error  VL53L1_GpioInterruptDisable(void);
 /*
  * @brief Gets current system tick count in [ms]
  *
- * @param[in]   pdev          : pointer to device structure (device handle)
  * @return  time_ms : current time in [ms]
  *
  * @return  VL53L1_ERROR_NONE     Success
@@ -387,7 +388,6 @@ VL53L1_Error  VL53L1_GpioInterruptDisable(void);
  */
 
 VL53L1_Error VL53L1_GetTickCount(
-	VL53L1_Dev_t *pdev,
 	uint32_t *ptime_ms);
 
 
