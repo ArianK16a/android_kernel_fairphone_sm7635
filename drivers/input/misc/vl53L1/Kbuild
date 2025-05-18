@@ -3,24 +3,30 @@
 #
 
 ccflags-y	+= -I$(srctree)/$(src)/inc -I$(srctree)/$(src)
-ccflags-y	+= -I$(src)/inc -I$(src) -I$(src)/protected/inc
+
 
 ccflags-y	+= -I$(srctree)/$(src)/protected/inc
+ccflags-y	+= -DVL53L1_FULL_KERNEL
 
-ifdef DEBUG
-ccflags-y	+= -DDEBUG
-endif
 
-ifdef VL53L3
+
 ccflags-y	+= -DVL53L3
+
+
+# define this environment variable if you want to compile driver for an old
+# kernel
+ifdef OLD_NETLINK_API
+ccflags-y	+= -DOLD_NETLINK_API
 endif
 
+VL53L1_LOG_ENABLE := true
 ifdef VL53L1_LOG_ENABLE
 ccflags-y	+= -DVL53L1_LOG_ENABLE
 endif
 
 obj-$(CONFIG_STMVL53L1)	+= stmvl53l1.o
 stmvl53l1-objs		:= stmvl53l1_module.o stmvl53l1_module-i2c.o
+
 stmvl53l1-objs		+= vl53l1_platform_ipp.o
 stmvl53l1-objs		+= protected/src/vl53l1_hist_funcs.o
 stmvl53l1-objs		+= protected/src/vl53l1_xtalk.o
@@ -29,6 +35,7 @@ stmvl53l1-objs		+= protected/src/vl53l1_hist_core.o
 stmvl53l1-objs		+= protected/src/vl53l1_sigma_estimate.o
 stmvl53l1-objs		+= protected/src/vl53l1_dmax.o
 stmvl53l1-objs		+= protected/src/vl53l1_hist_algos_gen4.o
+
 stmvl53l1-objs		+= stmvl53l1_i2c.o stmvl53l1_log.o
 stmvl53l1-objs		+= src/vl53l1_api.o src/vl53l1_api_core.o
 stmvl53l1-objs		+= src/vl53l1_api_strings.o src/vl53l1_error_strings.o

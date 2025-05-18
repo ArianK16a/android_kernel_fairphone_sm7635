@@ -1,12 +1,65 @@
 
-// SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
-/******************************************************************************
+/*******************************************************************************
  * Copyright (c) 2020, STMicroelectronics - All Rights Reserved
 
- This file is part of VL53L1 and is dual licensed,
- either GPL-2.0+
+ This file is part of VL53L1 Core and is dual licensed,
+ either 'STMicroelectronics
+ Proprietary license'
  or 'BSD 3-clause "New" or "Revised" License' , at your option.
- ******************************************************************************
+
+********************************************************************************
+
+ 'STMicroelectronics Proprietary license'
+
+********************************************************************************
+
+ License terms: STMicroelectronics Proprietary in accordance with licensing
+ terms at www.st.com/sla0081
+
+ STMicroelectronics confidential
+ Reproduction and Communication of this document is strictly prohibited unless
+ specifically authorized in writing by STMicroelectronics.
+
+
+********************************************************************************
+
+ Alternatively, VL53L1 Core may be distributed under the terms of
+ 'BSD 3-clause "New" or "Revised" License', in which case the following
+ provisions apply instead of the ones
+ mentioned above :
+
+********************************************************************************
+
+ License terms: BSD 3-clause "New" or "Revised" License.
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
+
+ 1. Redistributions of source code must retain the above copyright notice, this
+ list of conditions and the following disclaimer.
+
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+ this list of conditions and the following disclaimer in the documentation
+ and/or other materials provided with the distribution.
+
+ 3. Neither the name of the copyright holder nor the names of its contributors
+ may be used to endorse or promote products derived from this software
+ without specific prior written permission.
+
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+********************************************************************************
+
 */
 
 
@@ -1222,9 +1275,6 @@ uint32_t VL53L1_calc_timeout_mclks(
 
 	LOG_FUNCTION_START("");
 
-	if (macro_period_us == 0)
-		timeout_mclks = 0;
-	else
 	timeout_mclks   =
 			((timeout_us << 12) + (macro_period_us>>1)) /
 			macro_period_us;
@@ -2392,7 +2442,6 @@ VL53L1_Error VL53L1_hist_xtalk_extract_calc_rate_per_spad(
 	uint64_t xtalk_per_spad = 0;
 
 	LOG_FUNCTION_START("");
-
 
 
 
@@ -3634,8 +3683,6 @@ VL53L1_Error VL53L1_set_ref_spad_char_config(
 		VL53L1_calc_macro_period_us(
 			fast_osc_frequency,
 			vcsel_period_a);
-	if (macro_period_us == 0)
-		macro_period_us = 1;
 
 
 
@@ -3936,7 +3983,6 @@ VL53L1_Error VL53L1_dynamic_xtalk_correction_calc_new_xtalk(
 	uint32_t *pcpo;
 	uint32_t max, nXtalk, cXtalk;
 	uint8_t merge_enabled;
-	uint32_t incXtalk, cval;
 
 
 	LOG_FUNCTION_START("");
@@ -4076,21 +4122,16 @@ VL53L1_Error VL53L1_dynamic_xtalk_correction_calc_new_xtalk(
 		pcpo = &(pC->algo__xtalk_cpo_HistoMerge_kcps[0]);
 		if ((histo_merge_nb > 0) && merge_enabled && (nXtalk != 0)) {
 			cXtalk =
-			pX->algo__crosstalk_compensation_plane_offset_kcps;
+			pC->algo__xtalk_cpo_HistoMerge_kcps[histo_merge_nb-1];
 			SmudgeFactor = cXtalk * 1000 / nXtalk;
-			if ((max ==  0)||
-				(SmudgeFactor >= pconfig->max_smudge_factor))
+			if (SmudgeFactor >= pconfig->max_smudge_factor)
 				pout->new_xtalk_applied_flag = 0;
-			else {
-				incXtalk = nXtalk / max;
-				cval = 0;
-				for (i = 0; i < max-1; i++) {
-					cval += incXtalk;
-					*pcpo = cval;
+			else if (SmudgeFactor > 0)
+				for (i = 0; i < max; i++) {
+				*pcpo *= 1000;
+				*pcpo /= SmudgeFactor;
 				pcpo++;
 				}
-				*pcpo = nXtalk;
-			}
 		}
 		if (pout->new_xtalk_applied_flag) {
 
@@ -4660,7 +4701,6 @@ VL53L1_Error VL53L1_config_low_power_auto_mode(
 
 
 	VL53L1_Error  status = VL53L1_ERROR_NONE;
-	SUPPRESS_UNUSED_WARNING(pgeneral);
 
 	LOG_FUNCTION_START("");
 
@@ -4675,10 +4715,15 @@ VL53L1_Error VL53L1_config_low_power_auto_mode(
 			VL53L1_SEQUENCE_VHV_EN |
 			VL53L1_SEQUENCE_PHASECAL_EN |
 			VL53L1_SEQUENCE_DSS1_EN |
-			VL53L1_SEQUENCE_DSS2_EN |
+
 
 
 			VL53L1_SEQUENCE_RANGE_EN;
+
+
+	pgeneral->dss_config__manual_effective_spads_select = 200 << 8;
+	pgeneral->dss_config__roi_mode_control =
+		VL53L1_DEVICEDSSMODE__REQUESTED_EFFFECTIVE_SPADS;
 
 	LOG_FUNCTION_END(status);
 
