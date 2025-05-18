@@ -679,8 +679,7 @@ VL53L1_Error VL53L1_init_tuning_parm_storage_struct(
 		VL53L1_TUNINGPARM_UWR_LONG_CORRECTION_ZONE_5_RANGEA_DEFAULT;
 	pdata->tp_uwr_lng_corr_z_5_rangeb =
 		VL53L1_TUNINGPARM_UWR_LONG_CORRECTION_ZONE_5_RANGEB_DEFAULT;
-	pdata->tp_min_signal_secondary_targets =
-		VL53L1_TUNINGPARM_MIN_SIGNAL_SECONDARY_TARGETS_DEFAULT;
+
 	LOG_FUNCTION_END(status);
 
 	return status;

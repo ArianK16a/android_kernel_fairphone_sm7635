@@ -167,6 +167,9 @@ VL53L1_Error VL53L1_GetPalState(VL53L1_DEV Dev,
  * before start programming the sensor.
  * When a single device us used, there is no need to call this function.
  *
+ * When it is requested for multi devices system this function MUST be called
+ * prior to VL53L1_DataInit()
+ *
  * @note This function Access to the device
  *
  * @param   Dev                   Device Handle
@@ -292,16 +295,26 @@ VL53L1_Error VL53L1_GetPresetMode(VL53L1_DEV Dev,
  * Set the distance mode to be used for the next ranging.<br>
  * The modes Short, Medium and Long are used to optimize the ranging accuracy
  * in a specific range of distance.<br> The user select one of these modes to
- * select the distance range.
+ * select the distance range. <br>
+ * Two additional modes are supported: AUTO and AUTO_LITE the difference between
+ * these modes is the following.<br>
+ * The mode AUTO take into account both the ranging distance (RangeMilliMeter)
+ * and the dmax distance (DmaxMilliMeter).<br> The algorithm uses the ranging
+ * distance when the range status is ok and uses the dmax distance when the
+ * range status is not ok.<br>
+ * The AUTO_LITE take into account only the ranging distance, so nothing is done
+ * in case of range error i.e. the distance mode will not be changed.
  * @note This function doesn't Access to the device
  *
  * @warning This function should be called after @a VL53L1_SetPresetMode().
 
  * @param   Dev                   Device Handle
- * @param   DistanceMode          Distance mode to apply, valid values are:
+ * @param   DistanceMode          Distance mode to apply valid values are:
  * @li VL53L1_DISTANCEMODE_SHORT
  * @li VL53L1_DISTANCEMODE_MEDIUM
  * @li VL53L1_DISTANCEMODE_LONG
+ * @li VL53L1_DISTANCEMODE_AUTO_LITE
+ * @li VL53L1_DISTANCEMODE_AUTO
  * @return  VL53L1_ERROR_NONE               Success
  * @return  VL53L1_ERROR_MODE_NOT_SUPPORTED This error occurs when DistanceMode
  *                                          is not in the supported list
@@ -1130,6 +1143,7 @@ VL53L1_Error VL53L1_GetXTalkCompensationEnable(VL53L1_DEV Dev,
  *
  * @param   Dev                  Device Handle
  * @param   CalibrationOption    Select the Calibration to be run :
+ * @param                        CalibrationOption
  * @li VL53L1_XTALKCALIBRATIONMODE_SINGLE_TARGET the calibration uses current
  * preset and distance mode without altering them.<br>
  * User must call @a VL53L1_SetPresetMode() with VL53L1_PRESETMODE_AUTONOMOUS,
