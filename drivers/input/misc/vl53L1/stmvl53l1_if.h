@@ -68,10 +68,6 @@ enum __stmv53l1_parameter_name_e {
 	 * @li 8 @a VL53L1_PRESETMODE_LOWPOWER_AUTONOMOUS low power autonomous
 	 * mode
 	 *
-	 * @note VL53L1_PRESETMODE_LOWPOWER_AUTONOMOUS and 
-	 * VL53L1_PRESETMODE_AUTONOMOUS ranging modes use the polling time and
-	 * the threholds set by @ref VL53L1_IOCTL_AUTONOMOUS_CONFIG
-	 *
 	 * @warning mode can only be set while not ranging
 	 */
 
@@ -453,7 +449,7 @@ struct stmvl53l1_autonomous_config_t {
  * @li -EIO. Read last_error to get device error code
  * @li -ENODEV. Device has been removed.
  *
- * example user land :
+ * c example userland :
  @code
 int smtvl53l1_stop(int fd){
 	int rc;
@@ -661,10 +657,8 @@ int smtvl53l1_stop(int fd){
 /**
  * set/get configure autonomous mode parameters
  *
- * Allow to get or set autonomous configuration when device operates
- * in VL53L1_PRESETMODE_AUTONOMOUS or VL53L1_PRESETMODE_LOWPOWER_AUTONOMOUS\n
- * Change it only when device is stopped otherwise you will receive 
- * an EBUSY error.
+ * Allow to get or set autonomous configuration. Change it only when device
+ * is stopped otherwise you will receive an EBUSY error.
  *
  * @param stmvl53l1_autonomous_config_t [in/out]
  *
@@ -675,17 +669,6 @@ int smtvl53l1_stop(int fd){
  * @li -EFAULT failed to copy from/to configuration.
  * @li -EBUSY when trying to change configuration while ranging.
  * @li -ENODEV. Device has been removed.
- * example user land \n 
- * trig interrupt when a target is withing [0..300mm[ distance
- @code
-	struct stmvl53l1_autonomous_config_t SD;
-	SD.is_read = 0;
-	SD.pollingTimeInMs = 100;
-	SD.config.DetectionMode = 1;
-	SD.config.Distance.CrossMode = 0;
-	SD.config.Distance.Low = 300; 
-	rc = ioctl(fd, VL53L1_IOCTL_AUTONOMOUS_CONFIG, &SD);
- @endcode
  */
 #define VL53L1_IOCTL_AUTONOMOUS_CONFIG\
 	_IOWR('p', 0x14, struct stmvl53l1_autonomous_config_t)
