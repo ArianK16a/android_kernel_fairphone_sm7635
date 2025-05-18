@@ -433,7 +433,6 @@ typedef struct {
 	int16_t tp_uwr_lng_corr_z_4_rangeb;
 	int16_t tp_uwr_lng_corr_z_5_rangea;
 	int16_t tp_uwr_lng_corr_z_5_rangeb;
-	uint32_t tp_min_signal_secondary_targets;
 
 } VL53L1_tuning_parm_storage_t;
 
@@ -1438,7 +1437,6 @@ typedef struct {
 	int16_t PreviousRangeMilliMeter[VL53L1_MAX_RANGE_RESULTS];
 	uint8_t PreviousRangeStatus[VL53L1_MAX_RANGE_RESULTS];
 	uint8_t PreviousExtendedRange[VL53L1_MAX_RANGE_RESULTS];
-	uint8_t PreviousRangeActiveResults;
 	uint8_t PreviousStreamCount;
 
 } VL53L1_LLDriverData_t;
