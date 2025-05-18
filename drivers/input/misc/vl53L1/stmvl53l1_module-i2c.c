@@ -1,13 +1,33 @@
+/**************************************************************************
+ * Copyright (c) 2016, STMicroelectronics - All Rights Reserved
 
-// SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
-/******************************************************************************
- * Copyright (c) 2020, STMicroelectronics - All Rights Reserved
+ License terms: BSD 3-clause "New" or "Revised" License.
 
- This file is part of VL53L1 and is dual licensed,
- either GPL-2.0+
- or 'BSD 3-clause "New" or "Revised" License' , at your option.
- ******************************************************************************
- */
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
+
+ 1. Redistributions of source code must retain the above copyright notice, this
+ list of conditions and the following disclaimer.
+
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+ this list of conditions and the following disclaimer in the documentation
+ and/or other materials provided with the distribution.
+
+ 3. Neither the name of the copyright holder nor the names of its contributors
+ may be used to endorse or promote products derived from this software
+ without specific prior written permission.
+
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ****************************************************************************/
 
 /**
  * @file stmvl53l1_module-i2c.c
@@ -96,7 +116,6 @@ static int adapter_nb = -1;
 static int xsdn_gpio_nb = -1;
 static int pwren_gpio_nb = -1;
 static int intr_gpio_nb = -1;
-static int i2c_addr_nb = STMVL53L1_SLAVE_ADDR;
 
 module_param(force_device, int, 0000);
 MODULE_PARM_DESC(force_device, "force device insertion at module init");
@@ -140,6 +159,7 @@ MODULE_PARM_DESC(intr_gpio_nb, "select gpio numer to use for vl53l1 interrupt");
 
 static int insert_device(void)
 {
+#if 0
 	int ret = 0;
 	struct i2c_adapter *adapter;
 	struct i2c_board_info info = {
@@ -155,16 +175,14 @@ static int insert_device(void)
 		ret = -EINVAL;
 		goto done;
 	}
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 0)
 	stm_test_i2c_client = i2c_new_device(adapter, &info);
-#else
-	stm_test_i2c_client = i2c_new_client_device(adapter, &info);
-#endif
 	if (!stm_test_i2c_client)
 		ret = -EINVAL;
 
 done:
 	return ret;
+#endif
+return -1;
 }
 
 static int get_xsdn(struct device *dev, struct i2c_data *i2c_data)
@@ -319,9 +337,7 @@ static void put_intr(struct i2c_data *i2c_data)
  */
 static int stmvl53l1_parse_tree(struct device *dev, struct i2c_data *i2c_data)
 {
-	struct i2c_client *client = (struct i2c_client *) i2c_data->client;
 	int rc = 0;
-	u32 reg;
 
 	i2c_data->pinctrl = devm_pinctrl_get(dev);
     if (IS_ERR_OR_NULL(i2c_data->pinctrl)) {
@@ -349,6 +365,7 @@ static int stmvl53l1_parse_tree(struct device *dev, struct i2c_data *i2c_data)
         vl53l1_wanrmsg("Pin state[release] not found");
         rc = PTR_ERR(i2c_data->pins_release);
     }
+
 	/* if force device is in use then gpio nb comes from module param else
 	 * we use devicetree.
 	 */
@@ -361,41 +378,38 @@ static int stmvl53l1_parse_tree(struct device *dev, struct i2c_data *i2c_data)
 		i2c_data->xsdn_gpio = xsdn_gpio_nb;
 		i2c_data->pwren_gpio = pwren_gpio_nb;
 		i2c_data->intr_gpio = intr_gpio_nb;
-		client->addr = i2c_addr_nb;
 	} else if (dev->of_node) {
-		/* power : either vdd or pwren_gpio. try regulator first */
+		/* power : either vdd or pwren_gpio. try reulator first */
 		i2c_data->vdd = regulator_get_optional(dev, "vdd");
 		if (IS_ERR(i2c_data->vdd) || i2c_data->vdd == NULL) {
 			i2c_data->vdd = NULL;
 			/* try gpio */
-    		i2c_data->pwren_gpio = of_get_named_gpio(dev->of_node, "pwren-gpio",0);
-    		if (i2c_data->boot_reg < 0) {
-    			vl53l1_errmsg("Unable to get pwren-gpio,no regulator, nor power gpio => power ctrl disabled");
+			rc = of_property_read_u32_array(dev->of_node,
+				"pwren-gpio", &i2c_data->pwren_gpio, 1);
+			if (rc) {
 				i2c_data->pwren_gpio = -1;
+				vl53l1_wanrmsg(
+			"no regulator, nor power gpio => power ctrl disabled");
 			}
-		
 		}
-	
-		reg = of_get_named_gpio(dev->of_node, "reg",0);
-		if (reg < 0){
-			client->addr=i2c_addr_nb;
-			vl53l1_errmsg("Unable to get reg");
-		}else{
-			client->addr = reg;
-		}
+		//rc = regulator_enable(i2c_data->vdd);
+		//if (rc)
+		//	pr_err("i2c_data->vdd failed to enable\n");
 		
 		i2c_data->xsdn_gpio = of_get_named_gpio(dev->of_node, "xsdn-gpio",0);
 		if (i2c_data->xsdn_gpio < 0)
-			vl53l1_errmsg("Unable to get reset_gpio");
+			vl53l1_wanrmsg("Unable to get reset_gpio");
 
 		i2c_data->intr_gpio = of_get_named_gpio(dev->of_node, "intr-gpio",0);
 		if (i2c_data->intr_gpio < 0) {
-			vl53l1_errmsg("Unable to get intr_gpio");
+			vl53l1_wanrmsg("Unable to get intr_gpio");
 		}
 		
-		i2c_data->boot_reg = of_get_named_gpio(dev->of_node, "boot-reg",0);
-		if (i2c_data->boot_reg < 0) {
-			vl53l1_errmsg("Unable to get boot_reg");
+		rc = of_property_read_u32_array(dev->of_node, "boot-reg",
+			&i2c_data->boot_reg, 1);
+		if (rc) {
+			vl53l1_wanrmsg("Unable to find boot-reg %d %d",
+				rc, i2c_data->boot_reg);
 			i2c_data->boot_reg = STMVL53L1_SLAVE_ADDR;
 		}
 	}
@@ -446,6 +460,7 @@ static void stmvl53l1_release_gpios(struct i2c_data *i2c_data)
 	put_pwren(i2c_data);
 	put_intr(i2c_data);
 }
+struct i2c_data *stmvl53l1_i2c_data = NULL;
 
 static int stmvl53l1_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
@@ -482,6 +497,13 @@ static int stmvl53l1_probe(struct i2c_client *client,
 	if (rc)
 		goto done_freemem;
 
+	if (i2c_data->pinctrl && i2c_data->pins_active) {
+		rc = pinctrl_select_state(i2c_data->pinctrl, i2c_data->pins_active);
+		if (rc < 0) {
+		    vl53l1_dbgmsg("Set suspend pin state error:%d", rc);
+		}
+	}
+
 	/* setup device name */
 	/* vl53l1_data->dev_name = dev_name(&client->dev); */
 
@@ -495,6 +517,7 @@ static int stmvl53l1_probe(struct i2c_client *client,
 	vl53l1_dbgmsg("End\n");
 
 	kref_init(&i2c_data->ref);
+	stmvl53l1_i2c_data = i2c_data;
 
 	return rc;
 
@@ -513,6 +536,7 @@ static void stmvl53l1_remove(struct i2c_client *client)
 {
 	struct stmvl53l1_data *data = i2c_get_clientdata(client);
 	struct i2c_data *i2c_data = (struct i2c_data *)data->client_object;
+	int ret = 0;
 
 	vl53l1_dbgmsg("Enter\n");
 	mutex_lock(&data->work_mutex);
@@ -521,6 +545,13 @@ static void stmvl53l1_remove(struct i2c_client *client)
 
 	/* release gpios */
 	stmvl53l1_release_gpios(i2c_data);
+
+	if (i2c_data->pinctrl && i2c_data->pins_active) {
+		ret = pinctrl_select_state(i2c_data->pinctrl, i2c_data->pins_release);
+		if (ret < 0) {
+		    vl53l1_dbgmsg("Set suspend pin state error:%d", ret);
+		}
+	}
 
 	mutex_unlock(&data->work_mutex);
 
@@ -535,6 +566,7 @@ static void stmvl53l1_remove(struct i2c_client *client)
 static int stmvl53l1_suspend(struct device *dev)
 {
 	struct stmvl53l1_data *data = i2c_get_clientdata(to_i2c_client(dev));
+	int ret = 0;
 
 	vl53l1_dbgmsg("Enter\n");
 	mutex_lock(&data->work_mutex);
@@ -543,6 +575,13 @@ static int stmvl53l1_suspend(struct device *dev)
 
 	mutex_unlock(&data->work_mutex);
 
+	if (stmvl53l1_i2c_data->pinctrl && stmvl53l1_i2c_data->pins_suspend) {
+		ret = pinctrl_select_state(stmvl53l1_i2c_data->pinctrl, stmvl53l1_i2c_data->pins_suspend);
+		if (ret < 0) {
+		    vl53l1_dbgmsg("Set suspend pin state error:%d", ret);
+		}
+	}
+
 	vl53l1_dbgmsg("End\n");
 
 	return 0;
@@ -550,6 +589,7 @@ static int stmvl53l1_suspend(struct device *dev)
 
 static int stmvl53l1_resume(struct device *dev)
 {
+	int ret = 0;
 #if 0
 	struct stmvl53l1_data *data = i2c_get_clientdata(to_i2c_client(dev));
 
@@ -564,6 +604,13 @@ static int stmvl53l1_resume(struct device *dev)
 	vl53l1_dbgmsg("End\n");
 #else
 	vl53l1_dbgmsg("Enter\n");
+	if (stmvl53l1_i2c_data->pinctrl && stmvl53l1_i2c_data->pins_active) {
+		ret = pinctrl_select_state(stmvl53l1_i2c_data->pinctrl, stmvl53l1_i2c_data->pins_active);
+		if (ret < 0) {
+		    vl53l1_dbgmsg("Set suspend pin state error:%d", ret);
+		}
+	}
+
 	vl53l1_dbgmsg("End\n");
 #endif
 	return 0;
@@ -794,7 +841,9 @@ void stmvl53l1_clean_up_i2c(void)
 {
 	if (stm_test_i2c_client) {
 		vl53l1_dbgmsg("to unregister i2c client\n");
+		#if 0//delete by jinghuang
 		i2c_unregister_device(stm_test_i2c_client);
+		#endif
 	}
 }
 

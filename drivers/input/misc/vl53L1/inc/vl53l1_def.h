@@ -37,9 +37,9 @@ extern "C" {
 /** VL53L1 IMPLEMENTATION minor version */
 #define VL53L1_IMPLEMENTATION_VER_MINOR       6
 /** VL53L1 IMPLEMENTATION sub version */
-#define VL53L1_IMPLEMENTATION_VER_SUB         11
+#define VL53L1_IMPLEMENTATION_VER_SUB         4
 /** VL53L1 IMPLEMENTATION sub version */
-#define VL53L1_IMPLEMENTATION_VER_REVISION  2576
+#define VL53L1_IMPLEMENTATION_VER_REVISION  2462
 
 /****************************************
  * PRIVATE define do not edit
@@ -165,7 +165,9 @@ typedef uint8_t VL53L1_DeviceDmaxModes;
 
 /** @} VL53L1_define_DeviceDmaxModes_group */
 
-/** @defgroup VL53L1_define_OffsetCorrectionModesBD_group Defines offset Mode
+/** @defgroup VL53L1_define_OffsetCorrectionModesBD_group
+ *  Device Offset Correction Mode
+ *
  *  @brief Defines all possible offset correction modes for the device
  *  @{
  */
@@ -340,13 +342,13 @@ typedef uint8_t VL53L1_State;
 typedef uint8_t VL53L1_SmudgeCorrectionModes;
 
 #define VL53L1_SMUDGE_CORRECTION_NONE       ((VL53L1_SmudgeCorrectionModes)  0)
-	/*!< Smudge correction is disabled */
+	/*!< Smudge correction is applied continously accross the rangings */
 #define VL53L1_SMUDGE_CORRECTION_CONTINUOUS ((VL53L1_SmudgeCorrectionModes)  1)
-	/*!< Smudge correction is applied continuously across the rangings */
+	/*!< Smudge correction is applied continously accross the rangings */
 #define VL53L1_SMUDGE_CORRECTION_SINGLE     ((VL53L1_SmudgeCorrectionModes)  2)
-	/*!< Smudge correction is applied only once across the rangings */
+	/*!< Smudge correction is applied only once accross the rangings */
 #define VL53L1_SMUDGE_CORRECTION_DEBUG      ((VL53L1_SmudgeCorrectionModes)  3)
-	/*!< Smudge detection is applied continuously but Xtalk values are not
+	/*!< Smudge detection is applied continously but Xtalk values are not
 	 * updated automatically within the driver
 	 */
 
@@ -379,8 +381,8 @@ typedef struct {
 
 	FixPoint1616_t AmbientRateRtnMegaCps;
 		/*!< Return ambient rate (MCPS)\n these is a 16.16 fix point
-		 *  value, which is effectively a measure of the ambient
-		 *  light.
+		 *  value, which is effectively a measure of the ambien
+		 *  t light.
 		 */
 
 	uint16_t EffectiveSpadRtnCount;
@@ -613,7 +615,7 @@ typedef VL53L1_additional_data_t VL53L1_AdditionalData_t;
 typedef VL53L1_zone_calibration_results_t VL53L1_ZoneCalibrationData_t;
 
 /** @defgroup VL53L1_define_SequenceStepId_group Defines the SequenceStep
- *  Configure the sequence steps performed during ranging
+ *	Defines the the sequence steps performed during ranging..
  *	@{
  */
 typedef uint8_t VL53L1_SequenceStepId;
