@@ -309,6 +309,11 @@ VL53L1_Error VL53L1_f_021(
 
 	LOG_FUNCTION_START("");
 
+        //add by jinghuang for crash
+        if(palgo==NULL){
+            printk("VL53L1_f_021:palgo is null!");
+            return status;
+        }
 
 
 	max_filter_half_width = palgo->VL53L1_p_031 - 1;
@@ -323,8 +328,15 @@ VL53L1_Error VL53L1_f_021(
 
 		i =  blb      % palgo->VL53L1_p_031;
 		j = (blb + 1) % palgo->VL53L1_p_031;
-
-
+             //add by jinghuang for crash
+            if(i>=VL53L1_HISTOGRAM_BUFFER_SIZE){
+                i=VL53L1_HISTOGRAM_BUFFER_SIZE-1;
+                printk("VL53L1_f_021:buff i is overflow!");
+            }
+            if(j>=VL53L1_HISTOGRAM_BUFFER_SIZE){
+                j=VL53L1_HISTOGRAM_BUFFER_SIZE-1;
+                printk("VL53L1_f_021:buff j is overflow!");
+            }
 
 		if (i < palgo->VL53L1_p_024 &&
 				j < palgo->VL53L1_p_024) {
@@ -335,9 +347,14 @@ VL53L1_Error VL53L1_f_021(
 					palgo->VL53L1_p_047[j] > 0) {
 
 				pulse_no = palgo->VL53L1_p_047[j] - 1;
-				pdata   = &(palgo->VL53L1_p_002[pulse_no]);
+                                //add by jinghuang for crash
+                                if(pulse_no >=VL53L1_D_001){
+                                    printk("VL53L1_f_021:buff j pulse_no is overflow!");
+                                    pulse_no=VL53L1_D_001-1;
+                                }
 
 				if (pulse_no < palgo->VL53L1_p_050) {
+                                        pdata = &(palgo->VL53L1_p_002[pulse_no]);
 					pdata->VL53L1_p_015 = blb;
 					pdata->VL53L1_p_022    = blb + 1;
 					pdata->VL53L1_p_025   = 0xFF;
@@ -352,10 +369,14 @@ VL53L1_Error VL53L1_f_021(
 				&& palgo->VL53L1_p_047[j] == 0) {
 
 				pulse_no = palgo->VL53L1_p_047[i] - 1;
-				pdata   = &(palgo->VL53L1_p_002[pulse_no]);
+                                //add by jinghuang for crash
+                                if(pulse_no >=VL53L1_D_001){
+                                    printk("VL53L1_f_021:buff i pulse_no is overflow!");
+                                    pulse_no=VL53L1_D_001-1;
+                                }
 
 				if (pulse_no < palgo->VL53L1_p_050) {
-
+                                        pdata = &(palgo->VL53L1_p_002[pulse_no]);
 					pdata->VL53L1_p_026    = blb;
 					pdata->VL53L1_p_016  = blb + 1;
 
