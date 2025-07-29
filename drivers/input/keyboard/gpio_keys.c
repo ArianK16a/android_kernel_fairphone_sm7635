@@ -382,6 +382,12 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 	if (type == EV_ABS) {
 		if (state)
 			input_event(input, type, button->code, button->value);
+	} else if (button->oneshot) {
+		if (state == 0)
+			return;
+
+		input_event(input, type, *bdata->code, 1);
+		input_event(input, type, *bdata->code, 0);
 	} else {
 		input_event(input, type, *bdata->code, state);
 	}
@@ -786,6 +792,9 @@ gpio_keys_get_devtree_pdata(struct device *dev)
 		if (fwnode_property_read_u32(child, "debounce-interval",
 					 &button->debounce_interval))
 			button->debounce_interval = 5;
+
+		button->oneshot =
+			fwnode_property_read_bool(child, "oneshot");
 
 		button++;
 	}
