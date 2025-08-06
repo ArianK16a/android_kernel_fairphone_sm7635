@@ -2019,6 +2019,18 @@ static ssize_t state_show(struct device *dev, struct device_attribute *attr, cha
 static ssize_t state_store(struct device *dev, struct device_attribute *attr,
 			   const char *buf, size_t count)
 {
+	cdev_t *cdev = dev_get_drvdata(dev);
+	struct aw_haptic *aw_haptic = container_of(cdev, struct aw_haptic, vib_dev);
+	uint32_t val = 0;
+	int rc = 0;
+
+	rc = kstrtouint(buf, 0, &val);
+	if (rc < 0)
+		return rc;
+	aw_info("value=%d", val);	
+	mutex_lock(&aw_haptic->lock);
+	aw_haptic->state = val != 0;
+	mutex_unlock(&aw_haptic->lock);
 	return count;
 }
 
@@ -2083,7 +2095,31 @@ static ssize_t activate_store(struct device *dev, struct device_attribute *attr,
 	}
 	mutex_lock(&aw_haptic->lock);
 	aw_haptic->state = val;
-	aw_haptic->activate_mode = aw_haptic->info.mode;
+	if (val == 0) {		
+		aw_haptic->amplitude = 0;
+		aw_haptic->activate_mode = AW_RAM_MODE;
+		aw_haptic->index = 1;
+		aw_haptic->func->set_repeat_seq(aw_haptic, aw_haptic->index);
+	} else if (aw_haptic->state == 1) {			
+		if (aw_haptic->duration <= 50) {									
+			aw_haptic->seq[0] = 1;
+			aw_haptic->func->set_wav_seq(aw_haptic, 0,
+								aw_haptic->seq[0]);
+			aw_haptic->loop[0] = 0;
+			aw_haptic->func->set_wav_loop(aw_haptic, 0,
+								aw_haptic->loop[0]);
+			aw_haptic->gain = 0x80;
+			aw_haptic->amplitude = 1;
+			aw_haptic->activate_mode = AW_RAM_MODE;
+		} else {
+			aw_haptic->gain = 0x55;
+			aw_haptic->index = 4;
+			aw_haptic->func->set_repeat_seq(aw_haptic, aw_haptic->index);
+			aw_haptic->activate_mode = aw_haptic->info.mode;
+		}
+	} else {
+		aw_haptic->activate_mode = aw_haptic->info.mode;
+	}
 	mutex_unlock(&aw_haptic->lock);
 	queue_work(aw_haptic->work_queue, &aw_haptic->vibrator_work);
 
@@ -3630,16 +3666,16 @@ static int vibrator_init(struct aw_haptic *aw_haptic)
 	aw_haptic->vib_dev.get_time = vibrator_get_time;
 	aw_haptic->vib_dev.enable = vibrator_enable;
 
-	ret = timed_output_dev_register(&(aw_haptic->vib_dev));
-	if (ret < 0) {
-		aw_err("fail to create timed output dev");
-		return ret;
-	}
-	ret = sysfs_create_group(&aw_haptic->vib_dev.dev->kobj, &vibrator_attribute_group);
-	if (ret < 0) {
-		aw_err("error creating sysfs attr files");
-		return ret;
-	}
+	// ret = timed_output_dev_register(&(aw_haptic->vib_dev));
+	// if (ret < 0) {
+	// 	aw_err("fail to create timed output dev");
+	// 	return ret;
+	// }
+	// ret = sysfs_create_group(&aw_haptic->vib_dev.dev->kobj, &vibrator_attribute_group);
+	// if (ret < 0) {
+	// 	aw_err("error creating sysfs attr files");
+	// 	return ret;
+	// }
 #else
 	aw_info("loaded in leds_cdev framework!");
 #ifdef AW_DOUBLE
@@ -3650,11 +3686,11 @@ static int vibrator_init(struct aw_haptic *aw_haptic)
 	if (!ret)
 		aw_haptic->vib_dev.name = "vibrator_r";
 #else
-#ifdef KERNEL_OVER_5_10
-	aw_haptic->vib_dev.name = "aw_vibrator";
-#else
+// #ifdef KERNEL_OVER_5_10
+// 	aw_haptic->vib_dev.name = "aw_vibrator";
+// #else
 	aw_haptic->vib_dev.name = "vibrator";
-#endif
+// #endif
 #endif
 	aw_haptic->vib_dev.brightness_get = brightness_get;
 	aw_haptic->vib_dev.brightness_set = brightness_set;
