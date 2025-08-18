@@ -267,7 +267,11 @@ EXPORT_SYMBOL_GPL(led_set_brightness);
 
 void led_set_brightness_nopm(struct led_classdev *led_cdev, unsigned int value)
 {
-	/* brightness setting can sleep, delegate it to a work queue task */
+	/* Use brightness_set op if available, it is guaranteed not to sleep */
+	if (!__led_set_brightness(led_cdev, value))
+		return;
+
+	/* If brightness setting can sleep, delegate it to a work queue task */
 	led_cdev->delayed_set_value = value;
 	schedule_work(&led_cdev->set_brightness_work);
 }
