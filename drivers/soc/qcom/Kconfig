@@ -1271,4 +1271,14 @@ config QTI_CRYPTO_FDE
           encryption. this is control only for enable inline crypto engine for Full
           Disk Encryption.
 
+config MSM_SYSTEM_HEALTH_MONITOR
+	tristate "System Health Monitor"
+	help
+	  System Health Monitor (SHM) passively monitors the health of the
+	  peripherals connected to the application processor. Software
+	  components in the application processor that experience
+	  communication failure can request the SHM to perform a system-wide
+	  health check. If any failures are detected during the health-check,
+	  then a subsystem restart will be triggered for the failed subsystem.
+
 endmenu
