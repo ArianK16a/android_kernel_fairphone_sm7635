@@ -599,7 +599,6 @@ struct ufs_qcom_host {
 	atomic_t therm_mitigation;
 	cpumask_t perf_mask;
 	cpumask_t def_mask;
-	cpumask_t esi_mask;
 	u32 *esi_affinity_mask;
 	cpumask_t qos_perf_mask;
 	cpumask_t qos_non_perf_mask;
