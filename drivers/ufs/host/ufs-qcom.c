@@ -441,8 +441,7 @@ static inline void cancel_dwork_unvote_cpufreq(struct ufs_hba *hba)
 
 	cancel_delayed_work_sync(&host->fwork);
 #if IS_ENABLED(CONFIG_SCHED_WALT)
-	if (host->esi_mask.bits[0])
-		walt_unset_enforce_high_irq_cpus(&host->esi_mask);
+	walt_unset_enforce_high_irq_cpus(&host->esi_mask);
 	sched_set_boost(STORAGE_BOOST_DISABLE);
 #endif
 
