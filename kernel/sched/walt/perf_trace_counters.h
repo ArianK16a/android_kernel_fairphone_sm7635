@@ -59,6 +59,10 @@ static inline long __trace_sched_switch_state(bool preempt, struct task_struct *
 }
 #endif /* CREATE_TRACE_POINTS */
 
+/* Check the AMU bits to judge AMU implementation in ID_AA64PFR0_EL1 */
+#define cpu_has_amu \
+	cpuid_feature_extract_unsigned_field(read_cpuid(ID_AA64PFR0_EL1), ID_AA64PFR0_EL1_AMU_SHIFT)
+
 TRACE_EVENT(sched_switch_with_ctrs,
 
 		TP_PROTO(bool preempt,
@@ -125,7 +129,7 @@ TRACE_EVENT(sched_switch_with_ctrs,
 					delta_l1_cnts[i] = 0;
 			}
 
-			if (IS_ENABLED(CONFIG_ARM64_AMU_EXTN)) {
+			if (IS_ENABLED(CONFIG_ARM64_AMU_EXTN) && cpu_has_amu > 0) {
 				amu_cnt = read_sysreg_s(SYS_AMEVCNTR0_CORE_EL0);
 				delta_amu_cnts[0] = amu_cnt -
 					per_cpu(previous_amu_cnts[0], cpu);
@@ -153,7 +157,7 @@ TRACE_EVENT(sched_switch_with_ctrs,
 			__entry->amu2 = delta_amu_cnts[2];
 		),
 
-		TP_printk("prev_comm=%s prev_pid=%d prev_state=%s%s ==> next_comm=%s next_pid=%d CCNTR=%lu CTR0=%lu CTR1=%lu CTR2=%lu CTR3=%lu CTR4=%lu CTR5=%lu, CYC: %lu, INST: %lu, STALL: %lu",
+		TP_printk("prev_comm=%s prev_pid=%d prev_state=%s%s ==> next_comm=%s next_pid=%d CCNTR=%u CTR0=%u CTR1=%u CTR2=%u CTR3=%u CTR4=%u CTR5=%u, CYC: %lu, INST: %lu, STALL: %lu",
 			__entry->prev_comm, __entry->prev_pid,
 
 			(__entry->prev_state & (TASK_REPORT_MAX - 1)) ?

@@ -39,9 +39,8 @@ DECLARE_EVENT_CLASS(preemptirq_long_template,
 	),
 
 	TP_printk("delta=%llu(ns) caller=%ps <- %ps <- %ps <- %ps",
-		__entry->delta, (void *)__entry->caller_offs,
-		(void *)__entry->parent_offs, (void *)__entry->pparent_offs,
-		(void *)__entry->ppparent_offs)
+		__entry->delta, __entry->caller_offs,
+		__entry->parent_offs,  __entry->pparent_offs,  __entry->ppparent_offs)
 );
 
 DEFINE_EVENT(preemptirq_long_template, irq_disable_long,

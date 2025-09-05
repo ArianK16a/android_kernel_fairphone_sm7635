@@ -104,7 +104,7 @@ static void test_preempt_disable_long(void *u1, unsigned long ip,
 	 * if we had entered idle and exiting idle now, we think
 	 * preemption is disabled the whole time. Detect this by
 	 * checking if the preemption is disabled across the same
-	 * task. There is a possibility that the same task is scheduled
+	 * task. There is a possiblity that the same task is scheduled
 	 * after idle. To rule out this possibility, compare the
 	 * context switch count also.
 	 */
@@ -157,6 +157,7 @@ static struct ctl_table preemptirq_long_table[] = {
 		.extra1		= &one_million,
 		.extra2		= &one_hundred_million,
 	},
+	{ }
 };
 
 int preemptirq_long_init(void)
