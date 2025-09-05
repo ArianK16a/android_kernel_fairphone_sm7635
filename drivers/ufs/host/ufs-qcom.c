@@ -1822,7 +1822,6 @@ static void ufs_qcom_populate_cluster_info(struct ufs_hba *hba)
 			else
 				host->qos_perf_mask.bits[0] |=
 					topology_cluster_cpumask(cid_cpu[i])->bits[0];
-
 		}
 	}
 
@@ -3188,176 +3187,6 @@ out_err:
 	host->cpu_info = NULL;
 }
 
-/**
- * cpu_to_cluster_id - cpu to cluster id mapping.
- * @hba: per adapter instance
- * Return cluster id associated with the cpu
- */
-static int cpu_to_cluster_id(struct ufs_qcom_host *host, u32 cpu)
-{
-	int i;
-
-	for (i = 0; i < host->num_cpus; i++) {
-		if (cpumask_test_cpu(cpu, &host->cpu_info[i].default_cluster_mask))
-			break;
-	}
-	return i;
-}
-
-/**
- * ufs_qcom_get_new_esi_affinity - Get new CQ esi affinity
- * from the available CPU within the cluster.
- * @cid: Cluster id
- * @pos: CQ/CPU number
- */
-
-static void ufs_qcom_get_new_esi_affinity(struct ufs_qcom_host *host, int cid, int pos)
-{
-	int i;
-	int max_cpu = host->cpu_info[cid].last_cpu;
-	int min_cpu = host->cpu_info[cid].first_cpu;
-
-	for (i = max_cpu; i >= min_cpu; i--) {
-		if (cpumask_test_cpu(i, &host->esi_mask))
-			continue;
-		host->esi_affinity_mask[pos] = i;
-		break;
-	}
-}
-
-/**
- * ufs_qcom_first_partial_cpu - Get first partial cpu index.
- * This would be last cpu from the first partial cpu cluster.
- *
- * Return last cpu from the first partial cpu cluster.
- */
-static int ufs_qcom_first_partial_cpu(struct ufs_qcom_host *host)
-{
-	int i;
-	int index = -1;
-
-	for (i = 0 ; i < host->num_cpus; i++) {
-		if (cpumask_weight(&host->cpu_info[i].available_cluster_mask) !=
-			(cpumask_weight(&host->cpu_info[i].default_cluster_mask))) {
-			index = host->cpu_info[i].last_cpu + 1;
-			break;
-		}
-	}
-	return index;
-}
-
-
-/**
- * ufs_qcom_update_esi_affinity_mask - Update esi affinity for all CQ.
- * THis is called only for partial cpu case to update esi_affinity mask
- * due to some partial cpu availability.
- */
-static void ufs_qcom_update_esi_affinity_mask(struct ufs_qcom_host *host, int num_cqs)
-{
-	int cid = -1;
-	int  first_hole_index = -1;
-	int i, j, pos = 0;
-	int last_cpu = -1;
-	int qultivate_cid = -1;
-	cpumask_t localclustermask[3];
-	u32 cpu;
-
-	first_hole_index = ufs_qcom_first_partial_cpu(host);
-
-	if (first_hole_index == -1) {
-		dev_info(host->hba->dev, "Not a partial cpu device, any cpu could be disabled using sysfs\n");
-		return;
-	}
-
-	for (i = 0 ; i < host->num_cpus; i++)
-		cpumask_copy(&localclustermask[i], &host->cpu_info[i].available_cluster_mask);
-
-	qultivate_cid = cpu_to_cluster_id(host, first_hole_index);
-
-  /**
-   *  If any of CPU from any cluster is Fused, hole is created at last index
-   *  of that clusters. All higher clusters is left shifted and hole is filled.
-   *  This happen recursively for all clusters.
-   *
-   *  Out loop traverse from start of clusters to end of the clusters and inner loop traverse from
-   *  next clusters to end of clusters. If any hole is created in current cluster, all subsequent
-   *  cluster is left shited by no of hole present in current cluster.
-   *
-   *          c0      c1       c2
-   *      |0  1  2| 3  4  5 |  6  7 |   (Logical CPU Number)
-   *     -----------------------------
-   *      |2  3  4| 2  3  4 | 7  7  | (ESI Affinity)
-   *     ----------------------------
-   *
-   *
-   *                   |
-   *                   |
-   *                   |
-   *                  \ /
-   *
-   *    |0  1 | 2  3  4  5| 6  7 |   (Logical CPU Number)
-   *    ----------------------------
-   *    |2 |3 |4 |2 |3 |7 |7 |X  |  updated Esi Affinity
-   *    ---------------------------
-   *
-   *
-   *
-   *  If any of cpu from any cluster is Fused, hole is created at last index of that
-   *  clusters. All higher clusters is shifted right and hole is filled. This happen
-   *  recursively for all clusters.
-   *
-   *
-   *  Outer loop(i) traverses from start of clusters to end of the clusters and inner
-   *  loop traverse from next clusters to end of clusters. If any hole is created in
-   *  current cluster index (i), all subsequent
-   *  clusters is left shited by no of hole present in current cluster.
-   */
-	for (i = qultivate_cid ; i < (host->num_cpus - 1); i++) {
-		pos = cpumask_weight(&host->cpu_info[i].default_cluster_mask) -
-			cpumask_weight(&localclustermask[i]);
-		for (j = i + 1; j < host->num_cpus ; j++) {
-			if (pos)
-				localclustermask[j].bits[0] =
-					(host->cpu_info[j].available_cluster_mask.bits[0]) << pos;
-		}
-	}
-
-	for (i = 0, j = 0 ; i < num_cqs; i++) {
-		cpu = host->esi_affinity_mask[i];
-		cid = cpu_to_cluster_id(host, cpu);
-
-		if (BIT(i) & localclustermask[cid].bits[0]) {
-			host->esi_affinity_mask[j] = host->esi_affinity_mask[i];
-			j++;
-		}
-	}
-
-	/* last logical cpu would be j */
-	last_cpu = j;
-
-	/**
-	 * Loop through each of the esi affinity index, if value
-	 * is less than first_hole_index no change is required,
-	 * but if value is more than first_hole_index then get
-	 * the new esi affinity from the available cpu available
-	 */
-	for (i = 0; i < last_cpu; i++) {
-		cpu = host->esi_affinity_mask[i];
-		cid = cpu_to_cluster_id(host, cpu);
-		if (host->esi_affinity_mask[i] < first_hole_index)
-			continue;
-		else
-			ufs_qcom_get_new_esi_affinity(host, cid, i);
-	}
-
-	/* Prepare the new esi_mask based on the updated esi_affinity */
-	cpumask_clear(&host->esi_mask);
-	/* Populate esi mask */
-	for (i = 0; i < last_cpu; i++)
-		cpumask_set_cpu(host->esi_affinity_mask[i], &host->esi_mask);
-}
-
-
 static void ufs_qcom_parse_irq_affinity(struct ufs_hba *hba)
 {
 	struct device *dev = hba->dev;
@@ -3373,23 +3202,22 @@ static void ufs_qcom_parse_irq_affinity(struct ufs_hba *hba)
 	 * Check sys/devices/system/cpu/possible for possible cause of
 	 * performance degradation.
 	 */
-
-	if (ufs_qcom_partial_cpu_found(host) && !host->is_qultivate_support)
+	if (ufs_qcom_partial_cpu_found(host))
 		return;
 
 	if (!np)
 		return;
 
 	of_property_read_u32(np, "qcom,prime-mask", &mask);
-	host->perf_mask.bits[0] = mask & cpu_possible_mask->bits[0];
-	if (!mask || !cpumask_subset(&host->perf_mask, cpu_possible_mask)) {
+	host->perf_mask.bits[0] = mask;
+	if (!cpumask_subset(&host->perf_mask, cpu_possible_mask)) {
 		dev_err(dev, "Invalid group prime mask 0x%x\n", mask);
 		host->perf_mask.bits[0] = UFS_QCOM_IRQ_PRIME_MASK;
 	}
 	mask = 0;
 	of_property_read_u32(np, "qcom,silver-mask", &mask);
-	host->def_mask.bits[0] = mask & cpu_possible_mask->bits[0];
-	if (!mask || !cpumask_subset(&host->def_mask, cpu_possible_mask)) {
+	host->def_mask.bits[0] = mask;
+	if (!cpumask_subset(&host->def_mask, cpu_possible_mask)) {
 		dev_err(dev, "Invalid group silver mask 0x%x\n", mask);
 		host->def_mask.bits[0] = UFS_QCOM_IRQ_SLVR_MASK;
 	}
@@ -3414,15 +3242,11 @@ static void ufs_qcom_parse_irq_affinity(struct ufs_hba *hba)
 			dev_info(dev, "Not found esi-affinity-mask property values\n");
 			return;
 		}
-
-		/* Populate esi mask */
-		for (i = 0; i < num_cqs; i++)
-			cpumask_set_cpu(host->esi_affinity_mask[i], &host->esi_mask);
-
-		if (ufs_qcom_partial_cpu_found(host))
-			ufs_qcom_update_esi_affinity_mask(host, num_cqs);
-
 	}
+
+	/* Populate esi mask */
+	for (i = 0; i < num_cqs; i++)
+		cpumask_set_cpu(host->esi_affinity_mask[i], &host->esi_mask);
 }
 
 /* ufs_qcom_storage_boost_param_init - Init Storage boost param */
@@ -5824,7 +5648,7 @@ static ssize_t irq_affinity_support_store(struct device *dev,
 	if (!host->perf_mask.bits[0])
 		goto out;
 
-	if (ufs_qcom_partial_cpu_found(host) && !host->is_qultivate_support)
+	if (ufs_qcom_partial_cpu_found(host))
 		goto out;
 
 	host->irq_affinity_support = !!value;
