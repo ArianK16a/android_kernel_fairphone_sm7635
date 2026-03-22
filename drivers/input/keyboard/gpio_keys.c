@@ -382,8 +382,8 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 	if (type == EV_ABS) {
 		if (state)
 			input_event(input, type, button->code, button->value);
-	} else if (button->oneshot) {
-		if (state == 0)
+	} else if (button->oneshot || button->oneshot_on_change) {
+		if (state == 0 && !button->oneshot_on_change)
 			return;
 
 		input_event(input, type, *bdata->code, 1);
@@ -693,7 +693,7 @@ static void gpio_keys_report_state(struct gpio_keys_drvdata *ddata)
 
 	for (i = 0; i < ddata->pdata->nbuttons; i++) {
 		struct gpio_button_data *bdata = &ddata->data[i];
-		if (bdata->gpiod)
+		if (bdata->gpiod && !bdata->button->oneshot_on_change)
 			gpio_keys_gpio_report_event(bdata);
 	}
 	input_sync(input);
@@ -795,6 +795,8 @@ gpio_keys_get_devtree_pdata(struct device *dev)
 
 		button->oneshot =
 			fwnode_property_read_bool(child, "oneshot");
+		button->oneshot_on_change =
+			fwnode_property_read_bool(child, "oneshot-on-change");
 
 		button++;
 	}
