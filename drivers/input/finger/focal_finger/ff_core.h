@@ -24,6 +24,7 @@
 #include <linux/ioctl.h>
 #include <linux/cdev.h>
 #include <linux/gpio.h>
+#include <linux/pinctrl/consumer.h>
 #include <linux/spi/spi.h>
 #include <linux/wait.h>
 #include <linux/version.h>
