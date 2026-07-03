@@ -462,8 +462,7 @@ static void stmvl53l1_release_gpios(struct i2c_data *i2c_data)
 }
 struct i2c_data *stmvl53l1_i2c_data = NULL;
 
-static int stmvl53l1_probe(struct i2c_client *client,
-				const struct i2c_device_id *id)
+static int stmvl53l1_probe(struct i2c_client *client)
 {
 	int rc = 0;
 	struct stmvl53l1_data *vl53l1_data = NULL;
