@@ -3715,7 +3715,7 @@ static void haptic_init(struct aw_haptic *aw_haptic)
 	mutex_unlock(&aw_haptic->lock);
 }
 
-static int aw_i2c_probe(struct i2c_client *i2c, const struct i2c_device_id *id)
+static int aw_i2c_probe(struct i2c_client *i2c)
 {
 	int ret = 0;
 	struct aw_haptic *aw_haptic;
