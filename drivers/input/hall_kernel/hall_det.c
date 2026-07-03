@@ -152,7 +152,7 @@ static int hall_probe(struct platform_device *pdev)
     INIT_WORK(&hall->hall_work, do_hall_work);
     enable_irq_wake(hall->irq);
     if (!hall_class)
-        hall_class= class_create(THIS_MODULE, "hall_switch");
+        hall_class= class_create("hall_switch");
     hall_dev = device_create(hall_class, NULL, 0, hall, pdev->name);
     if (IS_ERR(hall_dev))
         pr_err( "Failed to create device(hall_dev)!\n");
