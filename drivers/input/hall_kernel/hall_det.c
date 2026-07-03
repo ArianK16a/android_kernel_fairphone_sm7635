@@ -22,6 +22,7 @@
 #include <linux/of_irq.h>
 #include <linux/version.h>
 #include <linux/pm_wakeup.h>
+#include <linux/pinctrl/consumer.h>
 
 struct hall_data {
     int irq;
