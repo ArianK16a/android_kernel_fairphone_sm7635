@@ -1235,7 +1235,7 @@ static int ff_register_device(ff_context_t *ff_ctx)
     }
     FF_LOGD("ff devno:%x, %x", (int)ff_devno, (int)ff_ctx->ff_cdev.dev);
 
-    ff_ctx->ff_class = class_create(THIS_MODULE, FF_DRV_NAME);
+    ff_ctx->ff_class = class_create(FF_DRV_NAME);
     if (IS_ERR(ff_ctx->ff_class)) {
         ret = PTR_ERR(ff_ctx->ff_class);
         FF_LOGE("create ff class fails,ret=%d", ret);
