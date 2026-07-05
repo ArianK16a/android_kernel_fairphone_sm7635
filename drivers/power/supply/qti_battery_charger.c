@@ -1919,7 +1919,7 @@ static ssize_t charge_control_en_show(const struct class *c,
 }
 static CLASS_ATTR_RW(charge_control_en);
 
-static ssize_t suspend_input_current_store(struct class *c, struct class_attribute *attr,
+static ssize_t suspend_input_current_store(const struct class *c, const struct class_attribute *attr,
 				const char *buf, size_t count)
 {
 	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
@@ -1938,7 +1938,7 @@ static ssize_t suspend_input_current_store(struct class *c, struct class_attribu
 	return count;
 }
 
-static ssize_t suspend_input_current_show(struct class *c, struct class_attribute *attr,
+static ssize_t suspend_input_current_show(const struct class *c, const struct class_attribute *attr,
 				char *buf)
 {
 	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
@@ -1950,11 +1950,11 @@ static ssize_t suspend_input_current_show(struct class *c, struct class_attribut
 	if (rc < 0)
 		return rc;
 
-		return scnprintf(buf, PAGE_SIZE, "%d\n", pst->prop[USB_SUSPEND_INPUT_CURRENT]);
+	return scnprintf(buf, PAGE_SIZE, "%d\n", pst->prop[USB_SUSPEND_INPUT_CURRENT]);
 }
 static CLASS_ATTR_RW(suspend_input_current);
 
-static ssize_t typec_cc_orientation_show(struct class *c, struct class_attribute *attr,
+static ssize_t typec_cc_orientation_show(const struct class *c, const struct class_attribute *attr,
 				char *buf)
 {
 	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
@@ -1993,7 +1993,7 @@ static CLASS_ATTR_RO(usb_typec_compliant);
 #define SLOW_MODE_FCC 1000000 // 1A
 #define NORMAL_MODE_FCC 5800000 // 5.8A
 
-static ssize_t chgmod_fcc_store(struct class *c, struct class_attribute *attr,
+static ssize_t chgmod_fcc_store(const struct class *c, const struct class_attribute *attr,
 				const char *buf, size_t count)
 {
 	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
@@ -2020,7 +2020,7 @@ static ssize_t chgmod_fcc_store(struct class *c, struct class_attribute *attr,
 	return count;
 }
 
-static ssize_t chgmod_fcc_show(struct class *c, struct class_attribute *attr,
+static ssize_t chgmod_fcc_show(const struct class *c, const struct class_attribute *attr,
 				char *buf)
 {
 	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
@@ -2124,7 +2124,7 @@ static ssize_t restrict_chg_show(const struct class *c,
 static CLASS_ATTR_RW(restrict_chg);
 
 /* FPS-1952 */
-static ssize_t charge_disable_store(struct class *c, struct class_attribute *attr,
+static ssize_t charge_disable_store(const struct class *c, const struct class_attribute *attr,
 				const char *buf, size_t count)
 {
 	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
@@ -2151,7 +2151,7 @@ static ssize_t charge_disable_store(struct class *c, struct class_attribute *att
 	return count;
 }
 
-static ssize_t charge_disable_show(struct class *c, struct class_attribute *attr,
+static ssize_t charge_disable_show(const struct class *c, const struct class_attribute *attr,
 				char *buf)
 {
 	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
@@ -2171,9 +2171,11 @@ static CLASS_ATTR_RW(charge_disable);
 #define DISPLAY_ON_FCC 4000000 // 4A
 #define DISPLAY_OFF_FCC 5800000 // 5.8A
 
-static ssize_t display_fcc_store(struct class *c, struct class_attribute *attr,
+static ssize_t display_fcc_store(const struct class *c, const struct class_attribute *attr,
 					const char *buf, size_t count)
 {
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
 	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
 	int val, rc;
 	u32 fcc_ua = DISPLAY_OFF_FCC;
@@ -2196,9 +2198,11 @@ static ssize_t display_fcc_store(struct class *c, struct class_attribute *attr,
 	return count;
 }
 
-static ssize_t display_fcc_show(struct class *c, struct class_attribute *attr,
+static ssize_t display_fcc_show(const struct class *c, const struct class_attribute *attr,
 				char *buf)
 {
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
 	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_BATTERY];
 	int rc;
 
@@ -2430,32 +2434,6 @@ static ssize_t ship_mode_en_show(const struct class *c,
 	return scnprintf(buf, PAGE_SIZE, "%d\n", bcdev->ship_mode_en);
 }
 static CLASS_ATTR_RW(ship_mode_en);
-
-/*FPS-184 ,set usb online to false when lpd is ture ,begin */
-#if 0
-//QTI_CHARGER_RO_SHOW(moisture_detection_status, PSY_TYPE_USB, USB_MOISTURE_DET_STS);
-#else
-static ssize_t moisture_detection_status_show(struct class *c,
-					struct class_attribute *attr, char *buf)
-{
-	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
-						battery_class);
-	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_USB];
-	int rc;
-
-	rc = read_property_id(bcdev, pst, USB_MOISTURE_DET_STS);
-	if (rc < 0)
-		return rc;
-
-	moisture_detected = pst->prop[USB_MOISTURE_DET_STS];
-	//pr_err("moisture_detection_status_show,moisture_detected=%d \n",moisture_detected);
-
-	return scnprintf(buf, PAGE_SIZE, "%d\n", pst->prop[USB_MOISTURE_DET_STS]);
-}
-static CLASS_ATTR_RO(moisture_detection_status);
-
-#endif
-/*FPS-184 ,set usb online to false when lpd is ture ,end */
 
 #define BATT_PARALLEL_CELL_AVAIL_COUNT(val)		FIELD_GET(GENMASK(15, 8), val)
 #define BATT_PARALLEL_CELL_TOTAL_COUNT(val)		FIELD_GET(GENMASK(7, 0), val)
