@@ -23,10 +23,10 @@
 
 #include <emkit/emkit_info.h>
 
-#define GPIO_BASE 344
-#define GPIO_SWITCH (GPIO_BASE+107)//gpio107
+static int switch_state_gpio;
 
 //[FPS-2372] Add SIM card holder detect node begin
+#define GPIO_BASE 344
 #define GPIO_DETECT (GPIO_BASE+65)//gpio65
 //[FPS-2372] Add SIM card holder detect node end
 
@@ -291,8 +291,8 @@ gpio451 (GPIO-BASE+107) can be directly read here.*/
 static ssize_t switch_state_show(struct kobject *kobj,struct kobj_attribute *attr, char *buf)
 {
 	int value;
-	if(gpio_is_valid(GPIO_SWITCH)){
-		value = gpio_get_value(GPIO_SWITCH);
+	if(gpio_is_valid(switch_state_gpio)){
+		value = gpio_get_value(switch_state_gpio);
 		return scnprintf(buf, PAGE_SIZE, "%d\n", value);
 	}
 	else{
@@ -410,6 +410,9 @@ static int emkit_info_probe(struct platform_device * pdev)
 			pr_err("set_direction for gpio=%d failed, rc=%d\n",npi_down_gpio_en,ret);
 		}
 	}
+
+	switch_state_gpio = of_get_named_gpio(pdev->dev.of_node,
+			"fairphone,switch_state_gpio", 0);
 
 	for (i = 0; i < EMKIT_ATTRS_NUM; i++) {
 		ret = sysfs_create_file(g_emkit_info.kobj, &emkit_attrs[i].attr);
